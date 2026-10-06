@@ -1,0 +1,46 @@
+{
+  "name": "liquid-glass",
+  "version": "1.0.0",
+  "description": "Liquid Glass (iOS 26) para a web: refração em WebGL com formas que se fundem e vidro SVG sobre o DOM, com modelos e parâmetros expostos.",
+  "license": "MIT",
+  "author": "Andrey20Allyson",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Andrey20Allyson/liquid-glass.git"
+  },
+  "homepage": "https://andrey20allyson.github.io/liquid-glass/",
+  "keywords": [
+    "liquid-glass",
+    "glass",
+    "glassmorphism",
+    "webgl",
+    "svg",
+    "backdrop-filter",
+    "refraction",
+    "ios26"
+  ],
+  "type": "module",
+  "main": "dist/liquid-glass.esm.min.js",
+  "module": "dist/liquid-glass.esm.min.js",
+  "types": "dist/liquid-glass.d.ts",
+  "unpkg": "dist/liquid-glass.min.js",
+  "jsdelivr": "dist/liquid-glass.min.js",
+  "exports": {
+    ".": {
+      "types": "./dist/liquid-glass.d.ts",
+      "import": "./dist/liquid-glass.esm.min.js",
+      "default": "./dist/liquid-glass.min.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "sideEffects": true,
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

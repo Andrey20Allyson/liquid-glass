@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>liquid-glass</title>
+<meta name="description" content="Biblioteca JavaScript do Liquid Glass (iOS 26): refração em WebGL e vidro SVG sobre o DOM, com modelos e parâmetros expostos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Geist:wght@400..700&family=Geist+Mono:wght@400..600&display=swap">
+<style>
+:root{
+  --bg:#eceef3; --raise:#f7f8fb; --fg:#12141a; --muted:#596074; --line:rgba(18,22,34,.12);
+  --accent:#0a62f0; --accent-ink:#fff; --note:#94500a; --edge:rgba(18,22,34,.16); --nav-fill:rgba(246,247,251,.6);
+  --code-bg:#10121a; --code-fg:#e6e9f1; --code-dim:#8b92a6; --code-key:#7fb2ff; --code-val:#ffb877;
+  --font-display:"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --font-body:"Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono:"Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#07080c; --raise:#0f1118; --fg:#eef0f6; --muted:#949bae; --line:rgba(255,255,255,.1);
+    --accent:#4f95ff; --accent-ink:#04101f; --note:#f2a650; --edge:rgba(255,255,255,.1); --nav-fill:rgba(20,22,30,.55);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#07080c; --raise:#0f1118; --fg:#eef0f6; --muted:#949bae; --line:rgba(255,255,255,.1);
+  --accent:#4f95ff; --accent-ink:#04101f; --note:#f2a650; --edge:rgba(255,255,255,.1); --nav-fill:rgba(20,22,30,.55);
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:84px}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--font-body);-webkit-font-smoothing:antialiased;
+  padding:0 clamp(16px,3.6vw,40px) 48px;overflow-x:clip}
+a{color:inherit}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+[hidden]{display:none!important}
+.page{max-width:1200px;margin:0 auto}
+
+/* navegação: vidro aplicado pela própria lib (data-liquid-glass) */
+.topnav{position:fixed;z-index:50;left:50%;top:calc(env(safe-area-inset-top,0px) + 12px);transform:translateX(-50%);
+  display:flex;align-items:center;gap:4px;padding:6px;max-width:calc(100% - 32px);color:var(--fg)}
+.brand{display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;font:650 15px/1 var(--font-display);text-decoration:none;white-space:nowrap}
+.brand small{font:500 11px/1 var(--font-mono);color:var(--muted)}
+.dot{width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff 0 8%,rgba(255,255,255,0) 30%),conic-gradient(from 200deg,#46c2ff,#7d6bff,#ff5c9d,#ffb648,#46c2ff);box-shadow:inset 0 0 0 1px rgba(255,255,255,.5)}
+.navlinks{display:flex;gap:2px}
+.navlinks a{padding:8px 12px;border-radius:999px;text-decoration:none;font-size:14px;color:var(--muted);white-space:nowrap}
+.navlinks a:hover{color:var(--fg);background:rgba(127,127,127,.14)}
+.iconbtn{display:grid;place-items:center;width:36px;height:36px;border:0;border-radius:50%;background:transparent;cursor:pointer;flex:none}
+.iconbtn:hover{background:rgba(127,127,127,.16)}
+.iconbtn svg{width:18px;height:18px}
+@media (max-width:720px){.navlinks{display:none}}
+
+header{padding-top:112px}
+.eyebrow{font:500 12px/1.2 var(--font-mono);letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+h1{font:800 clamp(44px,8vw,96px)/.92 var(--font-display);letter-spacing:-.04em;margin:0}
+h2{font:700 clamp(28px,4vw,46px)/1.02 var(--font-display);letter-spacing:-.025em;margin:0}
+h3{font:650 19px/1.2 var(--font-display);margin:28px 0 10px}
+.lead{margin:16px 0 0;color:var(--muted);max-width:62ch;font-size:18px}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px 48px;align-items:end}
+@media (max-width:900px){.hero-grid{grid-template-columns:minmax(0,1fr)}}
+section{padding-top:88px}
+.sec-head{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px 48px;align-items:end;margin-bottom:24px}
+.sec-head p{margin:0;color:var(--muted);max-width:60ch}
+@media (max-width:820px){.sec-head{grid-template-columns:minmax(0,1fr)}}
+
+/* código */
+.code{position:relative;border-radius:18px;background:var(--code-bg);color:var(--code-fg);font:13px/1.6 var(--font-mono);overflow:hidden;margin:0}
+.code pre{margin:0;padding:16px 18px;overflow-x:auto;white-space:pre}
+.code .k{color:var(--code-key)} .code .v{color:var(--code-val)} .code .c{color:var(--code-dim)}
+.copy{position:absolute;right:10px;top:10px;border:0;border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer;background:rgba(255,255,255,.12);color:var(--code-fg)}
+.copy:hover{background:rgba(255,255,255,.2)}
+.tabs{display:flex;gap:6px;margin:0 0 10px;flex-wrap:wrap}
+
+/* palco + painel */
+.lab{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:start}
+@media (max-width:960px){.lab{grid-template-columns:minmax(0,1fr)}}
+.stage{position:relative;height:clamp(420px,64vh,600px);border-radius:28px;overflow:hidden;background:#0a0b10;box-shadow:0 0 0 1px var(--edge);touch-action:pan-y}
+.panel{background:var(--raise);border-radius:24px;padding:14px 16px;box-shadow:0 0 0 1px var(--line);font-size:13px}
+.plabel{font:500 10.5px/1 var(--font-mono);letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:12px 0 7px}
+.plabel:first-child{margin-top:2px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:0;border-radius:999px;padding:6px 11px;font-size:12.5px;cursor:pointer;background:rgba(127,127,127,.16)}
+.chip:hover{background:rgba(127,127,127,.26)}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.rows{display:grid;gap:7px}
+.row{display:grid;grid-template-columns:76px minmax(0,1fr) 52px;align-items:center;gap:8px}
+.row output{font:500 11.5px/1 var(--font-mono);color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;margin:0;accent-color:var(--accent);height:18px}
+.below{margin-top:16px}
+.note{font-size:14px;color:var(--note);margin:12px 4px 0}
+
+/* vidro no DOM */
+.dom-stage{position:relative;height:clamp(440px,62vh,560px);border-radius:28px;overflow:hidden;box-shadow:0 0 0 1px var(--edge);background:#f4efe6}
+.article{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;color:#1a1612;padding:92px clamp(18px,4vw,48px) 130px}
+.article h3{font:800 clamp(38px,7vw,80px)/.92 var(--font-display);letter-spacing:-.04em;margin:0 0 18px;max-width:12ch}
+.article p{max-width:60ch;margin:0 0 16px;font-size:16.5px}
+.swatches{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:14px;margin:24px 0}
+.sw{height:140px;border-radius:18px}
+.sw1{background:linear-gradient(135deg,#ff6a3d,#ffb347)}
+.sw2{background:repeating-linear-gradient(45deg,#1b2cc1 0 14px,#f4efe6 14px 28px)}
+.sw3{background:radial-gradient(circle at 30% 35%,#ffe066 0 18%,transparent 19%),linear-gradient(160deg,#0d7c66,#2fc4a4)}
+.sw4{background:conic-gradient(from 90deg,#ff3d77,#ffa63d,#ffe13d,#3dff8b,#3dd9ff,#7a3dff,#ff3d77)}
+.quote{font:700 clamp(24px,4vw,38px)/1.1 var(--font-display);letter-spacing:-.02em;margin:28px 0;max-width:20ch;color:#1b2cc1}
+.overlay{position:absolute;inset:0;pointer-events:none}
+.overlay > *{pointer-events:auto}
+.bar{position:absolute;left:14px;right:14px;top:14px;height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 18px;color:#1a1612}
+.bar strong{font:700 17px/1 var(--font-display)}
+.bar span{display:flex;gap:2px}
+.bar .iconbtn{color:#1a1612}
+.lens{position:absolute;left:0;top:0;width:150px;height:150px;touch-action:none;cursor:grab}
+.lens:active{cursor:grabbing}
+.dock{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;gap:10px;align-items:center}
+.gbtn{border:0;padding:12px 20px;font-size:15px;font-weight:600;cursor:pointer;color:#1a1612}
+.gbtn.round{width:48px;height:48px;padding:0;display:grid;place-items:center}
+.gbtn.round svg{width:22px;height:22px}
+
+/* tabela de parâmetros */
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th,.tbl td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl th{font:500 11px/1.3 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.tbl code{font:500 13px var(--font-mono)}
+.tbl td.num{font-family:var(--font-mono);font-size:13px;white-space:nowrap}
+.tblwrap{overflow-x:auto;border-radius:18px;background:var(--raise);box-shadow:0 0 0 1px var(--line);padding:4px 8px}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+@media (max-width:900px){.grid2{grid-template-columns:minmax(0,1fr)}}
+footer{margin-top:96px;padding-top:24px;border-top:1px solid var(--line);color:var(--muted);font-size:14px;display:flex;flex-wrap:wrap;gap:8px 24px}
+</style>
+</head>
+<body>
+
+<nav class="topnav" aria-label="Seções" data-liquid-glass data-frost="12" data-fill="var(--nav-fill)" data-saturation="1.6">
+  <a class="brand" href="#topo"><span class="dot" aria-hidden="true"></span>liquid-glass <small id="ver"></small></a>
+  <div class="navlinks">
+    <a href="#webgl">WebGL</a>
+    <a href="#dom">Vidro no DOM</a>
+    <a href="#instalar">Instalar</a>
+    <a href="#api">Parâmetros</a>
+    <a href="https://github.com/Andrey20Allyson/liquid-glass">GitHub</a>
+  </div>
+  <button class="iconbtn" id="theme" type="button" aria-label="Alternar tema"></button>
+</nav>
+
+<div class="page">
+<header id="topo">
+  <div class="hero-grid">
+    <div>
+      <p class="eyebrow">Biblioteca JavaScript · sem dependências</p>
+      <h1>liquid-glass</h1>
+    </div>
+    <p class="lead">O material de vidro do iOS 26 em uma linha de <code>&lt;script&gt;</code>. Os cinco modelos e os onze parâmetros do <a href="./">Liquid Glass Lab</a> ficam expostos para você montar o seu: refração em WebGL com formas que se fundem, ou vidro SVG sobre qualquer elemento da página.</p>
+  </div>
+  <div class="code" style="margin-top:28px"><button class="copy" type="button" data-copy="cdn-code">Copiar</button><pre id="cdn-code"></pre></div>
+</header>
+
+<main>
+<section id="webgl">
+  <div class="sec-head">
+    <div><p class="eyebrow">createStage · WebGL</p><h2>Palco de refração</h2></div>
+    <p>Formas de vidro desenhadas num shader sobre qualquer fundo: imagem, vídeo, canvas ou uma função de desenho. Arraste as gotas e encoste uma na outra. O painel é gerado a partir de <code>LiquidGlass.presets</code> e <code>LiquidGlass.params</code>.</p>
+  </div>
+  <div class="lab">
+    <div class="stage" id="stage" aria-label="Gotas de vidro sobre um fundo, renderizadas em WebGL" role="img"></div>
+    <aside class="panel" aria-label="Ajustes do palco">
+      <p class="plabel">Modelo</p><div class="chips" id="s-presets"></div>
+      <p class="plabel">Fundo</p><div class="chips" id="s-scenes"></div>
+      <p class="plabel">Parâmetros</p><div class="rows" id="s-rows"></div>
+    </aside>
+  </div>
+  <p class="note" id="no-webgl" hidden>Este navegador não tem WebGL, então o palco não pode ser desenhado.</p>
+  <div class="below"><div class="code"><button class="copy" type="button" data-copy="s-code">Copiar</button><pre id="s-code"></pre></div></div>
+</section>
+
+<section id="dom">
+  <div class="sec-head">
+    <div><p class="eyebrow">glass() · SVG + backdrop-filter</p><h2>Vidro sobre o DOM</h2></div>
+    <p>Qualquer elemento vira vidro com <code>glass(el)</code> ou só com o atributo <code>data-liquid-glass</code>. A barra, os botões e a lupa abaixo refratam o artigo de verdade que rola por trás. Refração e bisel se ajustam ao tamanho de cada elemento.</p>
+  </div>
+  <div class="lab">
+    <div class="dom-stage" id="dom-stage">
+      <article class="article" tabindex="0" aria-label="Artigo de exemplo">
+        <h3>Luz que dobra na borda</h3>
+        <p>Quando a luz passa do ar para o vidro, ela desacelera e muda de direção. Num bloco com bordas arredondadas, o centro é plano e deixa a imagem passar quase intacta; no bisel a superfície inclina e os raios são puxados para dentro.</p>
+        <div class="swatches"><div class="sw sw1"></div><div class="sw sw2"></div><div class="sw sw3"></div><div class="sw sw4"></div></div>
+        <p>O índice de refração muda com a cor. O vermelho curva menos que o azul, e essa diferença é a dispersão: cerca de 64 no número de Abbe do vidro crown, 36 no flint.</p>
+        <p class="quote">Duas gotas próximas se juntam porque a tensão superficial busca a menor área.</p>
+        <p>O reflexo na borda depende do ângulo: quanto mais rasante a visão, mais luz o vidro reflete. É o efeito Fresnel, imitado aqui por um filete claro e um gradiente no contorno.</p>
+        <div class="swatches"><div class="sw sw4"></div><div class="sw sw3"></div><div class="sw sw2"></div><div class="sw sw1"></div></div>
+      </article>
+      <div class="overlay">
+        <div class="bar" data-liquid-glass data-frost="4" data-tint="30">
+          <strong>Óptica</strong>
+          <span>
+            <button class="iconbtn" type="button" aria-label="Buscar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></button>
+            <button class="iconbtn" type="button" aria-label="Compartilhar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></button>
+          </span>
+        </div>
+        <div class="lens" id="lens" tabindex="0" role="img" aria-label="Lupa de vidro. Arraste ou use as setas do teclado."></div>
+        <div class="dock">
+          <button class="gbtn" type="button" data-liquid-glass data-press data-tint="30">Vidro</button>
+          <button class="gbtn" type="button" data-liquid-glass data-press data-fill="rgba(10,132,255,.55)" style="color:#fff">Proeminente</button>
+          <button class="gbtn round" type="button" aria-label="Favoritar" data-liquid-glass data-press data-tint="30"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <aside class="panel" aria-label="Ajustes do vidro no DOM">
+      <p class="plabel">Modelo da lupa</p><div class="chips" id="d-presets"></div>
+      <p class="plabel">Parâmetros da lupa</p><div class="rows" id="d-rows"></div>
+    </aside>
+  </div>
+  <p class="note" id="no-svg" hidden>A refração SVG só funciona em navegadores Chromium (Chrome, Edge, Opera). Aqui o vidro aparece só desfocado, que é o fallback automático da lib.</p>
+  <div class="below"><div class="code"><button class="copy" type="button" data-copy="d-code">Copiar</button><pre id="d-code"></pre></div></div>
+</section>
+
+<section id="instalar">
+  <div class="sec-head">
+    <div><p class="eyebrow">CDN · ESM · atributos</p><h2>Instalar</h2></div>
+    <p>O arquivo minificado é servido pelo jsDelivr direto do repositório no GitHub (fixe a versão na URL) e também pelo GitHub Pages.</p>
+  </div>
+  <div class="tabs chips" id="inst-tabs"></div>
+  <div class="code"><button class="copy" type="button" data-copy="inst-code">Copiar</button><pre id="inst-code"></pre></div>
+</section>
+
+<section id="api">
+  <div class="sec-head">
+    <div><p class="eyebrow">LiquidGlass.params · LiquidGlass.presets</p><h2>Parâmetros e modelos</h2></div>
+    <p>As duas tabelas abaixo são geradas em tempo real a partir dos objetos que a biblioteca exporta.</p>
+  </div>
+  <div class="tblwrap"><table class="tbl" id="t-params"></table></div>
+  <h3>Modelos</h3>
+  <div class="tblwrap"><table class="tbl" id="t-presets"></table></div>
+</section>
+</main>
+
+<footer>
+  <span>liquid-glass · licença MIT</span>
+  <a href="./">Liquid Glass Lab (as cinco demonstrações)</a>
+  <a href="https://github.com/Andrey20Allyson/liquid-glass">Código no GitHub</a>
+</footer>
+</div>
+
+<script src="dist/liquid-glass.min.js"></script>
+<script>
+'use strict';
+const LG = window.LiquidGlass;
+const $ = (s, r = document) => r.querySelector(s);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+const REPO = 'Andrey20Allyson/liquid-glass';
+const CDN = `https://cdn.jsdelivr.net/gh/${REPO}@${LG.version}/dist`;
+const PAGES = 'https://andrey20allyson.github.io/liquid-glass/dist';
+$('#ver').textContent = 'v' + LG.version;
+
+/* ---- realce simples de código ---- */
+const TOK = /(\/\/[^\n]*|<!--[\s\S]*?-->)|('[^'\n]*'|"[^"\n]*")|\b(\d+(?:\.\d+)?)\b|\b(const|import|from|new|true|false|return|export|function)\b/g;
+function hl(src) {
+  let out = '', last = 0, m;
+  TOK.lastIndex = 0;
+  while ((m = TOK.exec(src))) {
+    out += esc(src.slice(last, m.index)) + `<span class="${m[1] ? 'c' : m[4] ? 'k' : 'v'}">${esc(m[0])}</span>`;
+    last = TOK.lastIndex;
+  }
+  return out + esc(src.slice(last));
+}
+const setCode = (id, src) => { const el = $('#' + id); el.innerHTML = hl(src); el.dataset.raw = src; };
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-copy]'); if (!b) return;
+  const raw = $('#' + b.dataset.copy).dataset.raw;
+  const done = t => { b.textContent = t; setTimeout(() => { b.textContent = 'Copiar'; }, 1600); };
+  try { navigator.clipboard.writeText(raw).then(() => done('Copiado'), () => done('Ctrl+C')); } catch (err) { done('Ctrl+C'); }
+});
+setCode('cdn-code', `<script src="${CDN}/liquid-glass.min.js"><\/script>\n\n// pronto: window.LiquidGlass\nLiquidGlass.glass('.minha-barra', 'frosted');`);
+
+/* ---- tema ---- */
+const SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+const MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11z"/></svg>';
+const root = document.documentElement, darkMQ = matchMedia('(prefers-color-scheme: dark)');
+const isDark = () => root.dataset.theme ? root.dataset.theme === 'dark' : darkMQ.matches;
+try { const t = localStorage.getItem('lg-theme'); if (t === 'dark' || t === 'light') root.dataset.theme = t; } catch (e) { /* sem armazenamento */ }
+const paintTheme = () => { const b = $('#theme'); b.innerHTML = isDark() ? SUN : MOON; b.setAttribute('aria-label', isDark() ? 'Usar tema claro' : 'Usar tema escuro'); };
+$('#theme').addEventListener('click', () => {
+  root.dataset.theme = isDark() ? 'light' : 'dark'; // a lib percebe a troca sozinha e redesenha o palco
+  try { localStorage.setItem('lg-theme', root.dataset.theme); } catch (e) { /* sem armazenamento */ }
+  paintTheme();
+});
+darkMQ.addEventListener('change', paintTheme);
+paintTheme();
+
+/* ---- painel gerado a partir de LiquidGlass.params ---- */
+function fmt(v, spec) {
+  const d = spec.step >= 1 ? 0 : spec.step >= 0.1 ? 1 : 2;
+  return v.toFixed(d).replace('.', ',') + (spec.unit ? (spec.unit === 'px' ? ' px' : spec.unit) : '');
+}
+function controls({ rows, chips, mode, get, set, onChange }) {
+  const inputs = {};
+  for (const [key, spec] of Object.entries(LG.params)) {
+    if (!spec.modes.includes(mode)) continue;
+    const id = `${mode}-${key}`;
+    const row = document.createElement('div'); row.className = 'row';
+    row.innerHTML = `<label for="${id}" title="${esc(spec.description)}">${spec.label}</label><input type="range" id="${id}" min="${spec.min}" max="${spec.max}" step="${spec.step}"><output for="${id}"></output>`;
+    rows.appendChild(row);
+    const inp = $('input', row), out = $('output', row);
+    inputs[key] = { inp, out, spec };
+    inp.addEventListener('input', () => { set({ [key]: +inp.value }); out.textContent = fmt(+inp.value, spec); state.custom = true; paintChips(); onChange(); });
+  }
+  const state = { preset: 'liquid', custom: false };
+  const sync = () => { const p = get(); for (const k in inputs) { inputs[k].inp.value = p[k]; inputs[k].out.textContent = fmt(p[k], inputs[k].spec); } };
+  const paintChips = () => chips.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', String(!state.custom && c.dataset.preset === state.preset)));
+  for (const [name, label] of Object.entries(LG.presetLabels)) {
+    const b = document.createElement('button');
+    b.className = 'chip'; b.type = 'button'; b.dataset.preset = name; b.textContent = label;
+    b.addEventListener('click', () => { state.preset = name; state.custom = false; set({ preset: name }); sync(); paintChips(); onChange(); });
+    chips.appendChild(b);
+  }
+  sync(); paintChips();
+  return state;
+}
+// Diferenças entre os parâmetros atuais e o modelo escolhido (para o código gerado)
+function diff(params, preset, base, mode) {
+  const ref = LG.resolve(base, preset);
+  return Object.keys(LG.params).filter(k => LG.params[k].modes.includes(mode) && Math.abs(params[k] - ref[k]) > 1e-6).map(k => [k, params[k]]);
+}
+
+/* ---- 1. palco WebGL ---- */
+const SCENES = {
+  title: ['Título', () => LG.scenes.title({ text: 'Liquid Glass', subtitle: 'Refração, dispersão e fusão, em tempo real.', font: '"Bricolage Grotesque", system-ui, sans-serif' }), "LiquidGlass.scenes.title({ text: 'Liquid Glass' })"],
+  stripes: ['Listras', () => LG.scenes.stripes(), 'LiquidGlass.scenes.stripes()'],
+  landscape: ['Paisagem', () => LG.scenes.landscape(), 'LiquidGlass.scenes.landscape()'],
+  gallery: ['Galeria', () => LG.scenes.gallery(), 'LiquidGlass.scenes.gallery()'],
+};
+let sceneName = 'title';
+if (LG.supportsWebGL()) {
+  const stage = LG.createStage('#stage', {
+    preset: 'liquid',
+    background: SCENES.title[1](),
+    drift: true,
+    shapes: [
+      { x: '33%', y: '50%', width: 300, height: 116, draggable: true, label: 'Pílula de vidro' },
+      { x: '72%', y: '34%', width: 150, height: 150, lens: true, draggable: true, label: 'Lente de aumento' },
+      { x: '58%', y: '76%', width: 150, height: 64, draggable: true, label: 'Gota pequena' },
+    ],
+  });
+  window.stage = stage; // para brincar no console
+  const SIZES = [[300, 116], [150, 150], [150, 64]];
+  const fit = w => {
+    const k = clamp(w / 1100, 0.58, 1);
+    stage.scale = k;
+    stage.shapes.forEach((s, i) => s.resize(SIZES[i][0] * k, SIZES[i][1] * k, true));
+  };
+  stage.on('resize', fit); fit(stage.w);
+
+  const sState = controls({ rows: $('#s-rows'), chips: $('#s-presets'), mode: 'webgl', get: () => stage.params, set: p => stage.set(p), onChange: () => code() });
+  for (const [name, [label]] of Object.entries(SCENES)) {
+    const b = document.createElement('button');
+    b.className = 'chip'; b.type = 'button'; b.textContent = label; b.setAttribute('aria-pressed', String(name === sceneName));
+    b.addEventListener('click', () => {
+      sceneName = name;
+      stage.scrollSpeed = name === 'gallery' ? 16 : 0;
+      stage.setBackground(SCENES[name][1]());
+      $('#s-scenes').querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', String(c === b)));
+      code();
+    });
+    $('#s-scenes').appendChild(b);
+  }
+  const code = () => {
+    const extra = diff(stage.params, sState.preset, LG.defaults, 'webgl').map(([k, v]) => `  ${k}: ${+v.toFixed(3)},\n`).join('');
+    setCode('s-code', `const stage = LiquidGlass.createStage('#palco', {
+  preset: '${sState.preset}',
+${extra}  background: ${SCENES[sceneName][2]},${sceneName === 'gallery' ? '\n  scrollSpeed: 16,' : ''}
+  drift: true,
+});
+stage.add({ x: '33%', y: '50%', width: 300, height: 116, draggable: true });
+stage.add({ x: '72%', y: '34%', width: 150, height: 150, lens: true, draggable: true });
+
+// depois: stage.set({ refraction: 40 }) ou stage.preset('drop')`);
+  };
+  code();
+} else {
+  $('#no-webgl').hidden = false;
+  $('#stage').hidden = true;
+}
+
+/* ---- 2. vidro no DOM ---- */
+if (!LG.supportsRefraction()) $('#no-svg').hidden = false;
+const lensEl = $('#lens');
+const lens = LG.glass(lensEl, { zoom: 1.45, refraction: 22, bevel: 26, dispersion: 0.35, tint: 2 });
+const dState = controls({ rows: $('#d-rows'), chips: $('#d-presets'), mode: 'dom', get: () => lens.params, set: p => lens.set(p), onChange: () => dcode() });
+const dcode = () => {
+  const p = diff(lens.params, dState.preset, LG.defaults, 'dom').filter(([k]) => k !== 'zoom');
+  const opts = [`preset: '${dState.preset}'`, `zoom: ${+lens.params.zoom.toFixed(2)}`, ...p.map(([k, v]) => `${k}: ${+v.toFixed(3)}`)];
+  setCode('d-code', `// um elemento qualquer vira vidro (zoom liga a lupa)
+LiquidGlass.glass('#lupa', { ${opts.join(', ')} });
+
+// ou sem JavaScript, com atributos:
+<button data-liquid-glass="frosted" data-press data-frost="4">Vidro</button>`);
+};
+dcode();
+
+// arrastar a lupa (posição em transform; o "press" da lib usa a propriedade scale, então não conflita)
+(() => {
+  const st = $('#dom-stage');
+  let x = 0, y = 0, drag = null, touched = false, t0 = performance.now();
+  const S = 150, bounds = () => [st.clientWidth - S, st.clientHeight - S];
+  const place = () => { lensEl.style.transform = `translate(${x}px,${y}px)`; };
+  const local = e => { const r = st.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  lensEl.addEventListener('pointerdown', e => { lensEl.setPointerCapture(e.pointerId); touched = true; const [px, py] = local(e); drag = { ox: px - x, oy: py - y }; });
+  lensEl.addEventListener('pointermove', e => { if (!drag) return; const [px, py] = local(e), [bw, bh] = bounds(); x = clamp(px - drag.ox, 0, bw); y = clamp(py - drag.oy, 0, bh); place(); });
+  lensEl.addEventListener('pointerup', () => { drag = null; }); lensEl.addEventListener('pointercancel', () => { drag = null; });
+  lensEl.addEventListener('keydown', e => {
+    const s = e.shiftKey ? 48 : 16, d = { ArrowLeft: [-s, 0], ArrowRight: [s, 0], ArrowUp: [0, -s], ArrowDown: [0, s] }[e.key];
+    if (!d) return; e.preventDefault(); touched = true;
+    const [bw, bh] = bounds(); x = clamp(x + d[0], 0, bw); y = clamp(y + d[1], 0, bh); place();
+  });
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const [bw0] = bounds(); x = bw0 * 0.42; y = 96; place();
+  const loop = now => {
+    if (!touched && !reduce) { const t = (now - t0) / 1000, [bw, bh] = bounds(); x = bw * (0.42 + 0.3 * Math.sin(t * 0.35)); y = Math.min(96 + 26 * Math.sin(t * 0.6), bh); place(); }
+    if (!touched) requestAnimationFrame(loop);
+  };
+  requestAnimationFrame(loop);
+})();
+
+/* ---- 3. instalar ---- */
+const INSTALL = {
+  'Script (CDN)': `<!-- jsDelivr, servido direto do GitHub (fixe a versão) -->
+<script src="${CDN}/liquid-glass.min.js"><\/script>
+
+<!-- ou GitHub Pages (sempre a última versão publicada) -->
+<script src="${PAGES}/liquid-glass.min.js"><\/script>
+
+<script>
+  const stage = LiquidGlass.createStage('#palco', { preset: 'drop' });
+  stage.add({ width: 220, height: 90, draggable: true });
+<\/script>`,
+  'Módulo ES': `import LiquidGlass, { glass, createStage, presets, params } from '${CDN}/liquid-glass.esm.min.js';
+
+glass(document.querySelector('nav'), { preset: 'frosted', frost: 8 });
+console.log(Object.keys(presets)); // ['liquid', 'drop', 'frosted', 'crystal', 'dark']`,
+  'Só atributos': `<script src="${CDN}/liquid-glass.min.js"><\/script>
+
+<!-- valor = modelo; os outros atributos são parâmetros -->
+<nav data-liquid-glass="frosted" data-frost="10">…</nav>
+<button data-liquid-glass data-press>OK</button>
+<div data-liquid-glass="drop" data-zoom="1.5" style="width:150px;height:150px"></div>`,
+  'React': `import { useEffect, useRef } from 'react';
+import { glass } from '${CDN}/liquid-glass.esm.min.js';
+
+export function GlassBar({ children }) {
+  const ref = useRef(null);
+  useEffect(() => { const g = glass(ref.current, 'frosted'); return () => g.destroy(); }, []);
+  return <div ref={ref} className="barra">{children}</div>;
+}`,
+};
+let instTab = 'Script (CDN)';
+for (const name of Object.keys(INSTALL)) {
+  const b = document.createElement('button');
+  b.className = 'chip'; b.type = 'button'; b.textContent = name;
+  b.addEventListener('click', () => { instTab = name; paintInst(); });
+  $('#inst-tabs').appendChild(b);
+}
+const paintInst = () => {
+  setCode('inst-code', INSTALL[instTab]);
+  $('#inst-tabs').querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', String(c.textContent === instTab)));
+};
+paintInst();
+
+/* ---- 4. tabelas geradas a partir da API ---- */
+const MODE = { webgl: 'WebGL', dom: 'DOM' };
+$('#t-params').innerHTML = '<thead><tr><th>Parâmetro</th><th>Faixa</th><th>Padrão</th><th>Onde</th><th>O que faz</th></tr></thead><tbody>'
+  + Object.entries(LG.params).map(([k, p]) => `<tr><td><code>${k}</code><br><span style="color:var(--muted)">${p.label}</span></td><td class="num">${p.min} a ${p.max}${p.unit ? ' ' + p.unit : ''}</td><td class="num">${p.default}</td><td>${p.modes.map(m => MODE[m]).join(', ')}</td><td>${esc(p.description)}</td></tr>`).join('')
+  + '</tbody>';
+const keys = Object.keys(LG.params);
+$('#t-presets').innerHTML = '<thead><tr><th>Modelo</th>' + keys.map(k => `<th>${k}</th>`).join('') + '</tr></thead><tbody>'
+  + Object.entries(LG.presets).map(([name, p]) => `<tr><td><code>'${name}'</code><br><span style="color:var(--muted)">${esc(LG.presetLabels[name] || '')}</span></td>${keys.map(k => `<td class="num">${p[k] != null ? p[k] : '·'}</td>`).join('')}</tr>`).join('')
+  + '</tbody>';
+</script>
+</body>
+</html>

@@ -1,0 +1,1763 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Liquid Glass Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Geist:wght@400..700&family=Geist+Mono:wght@400..600&display=swap">
+<style>
+/* Layout: bancada óptica. Cada demonstração é um palco escuro com a ficha técnica logo abaixo. */
+:root{
+  --bg:#eceef3; --bg-raise:#f7f8fb; --fg:#12141a; --muted:#596074; --line:rgba(18,22,34,.12);
+  --accent:#0a62f0; --accent-ink:#ffffff; --note:#94500a;
+  --stage-edge:rgba(18,22,34,.16);
+  --panel-fill:rgba(246,247,251,.55); --panel-fg:#12141a; --panel-muted:#495064; --panel-line:rgba(18,22,34,.12);
+  --track:rgba(18,22,34,.16);
+  --app-bg:#f3f3f6; --app-fg:#111216; --app-muted:#6b7080; --app-card:#ffffff;
+  --code-bg:#10121a; --code-fg:#e6e9f1; --code-dim:#8b92a6; --code-key:#7fb2ff; --code-val:#ffb877;
+  --glass-shadow:rgba(12,16,32,.22);
+  --handle-fg:#11131b; --handle-halo:rgba(255,255,255,.7);
+  --font-display:"Bricolage Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-body:"Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono:"Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --spring:cubic-bezier(.34,1.56,.64,1); --spring-dur:.6s;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#07080c; --bg-raise:#0f1118; --fg:#eef0f6; --muted:#949bae; --line:rgba(255,255,255,.1);
+    --accent:#4f95ff; --accent-ink:#04101f; --note:#f2a650;
+    --stage-edge:rgba(255,255,255,.1);
+    --panel-fill:rgba(20,22,30,.48); --panel-fg:#f1f3f8; --panel-muted:#aab0c2; --panel-line:rgba(255,255,255,.12);
+    --track:rgba(255,255,255,.18);
+    --app-bg:#000000; --app-fg:#f4f4f7; --app-muted:#8d92a0; --app-card:#16171c;
+    --glass-shadow:rgba(0,0,0,.45);
+    --handle-fg:#ffffff; --handle-halo:rgba(0,0,0,.4);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#07080c; --bg-raise:#0f1118; --fg:#eef0f6; --muted:#949bae; --line:rgba(255,255,255,.1);
+  --accent:#4f95ff; --accent-ink:#04101f; --note:#f2a650;
+  --stage-edge:rgba(255,255,255,.1);
+  --panel-fill:rgba(20,22,30,.48); --panel-fg:#f1f3f8; --panel-muted:#aab0c2; --panel-line:rgba(255,255,255,.12);
+  --track:rgba(255,255,255,.18);
+  --app-bg:#000000; --app-fg:#f4f4f7; --app-muted:#8d92a0; --app-card:#16171c;
+  --glass-shadow:rgba(0,0,0,.45);
+  --handle-fg:#ffffff; --handle-halo:rgba(0,0,0,.4);
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:88px}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--font-body);-webkit-font-smoothing:antialiased;
+  padding-inline:clamp(16px,3.6vw,40px);padding-block:0 48px;overflow-x:clip}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+a{color:inherit}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.page{max-width:1200px;margin:0 auto}
+
+/* ---------- Vidro em CSS (base de todos os elementos de vidro no DOM) ---------- */
+.lg{position:relative;border-radius:var(--r,999px);
+  background:var(--lg-fill,rgba(255,255,255,.12));
+  -webkit-backdrop-filter:blur(var(--lg-blur,8px)) saturate(var(--lg-sat,1.7));
+  backdrop-filter:blur(var(--lg-blur,8px)) saturate(var(--lg-sat,1.7));
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,var(--lg-hair,.14)),
+    inset 1.6px 1.6px 1px -1px rgba(255,255,255,var(--lg-spec,.75)),
+    inset -1.6px -1.6px 1px -1px rgba(255,255,255,calc(var(--lg-spec,.75) * .55)),
+    0 12px 32px -10px var(--glass-shadow), 0 2px 6px -2px var(--glass-shadow)}
+.svg-glass .lg.has-map{
+  -webkit-backdrop-filter:var(--lg-filter) blur(var(--lg-frost,.4px)) saturate(var(--lg-sat,1.7));
+  backdrop-filter:var(--lg-filter) blur(var(--lg-frost,.4px)) saturate(var(--lg-sat,1.7))}
+.lg::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;padding:1px;
+  background:linear-gradient(var(--rim-angle,135deg),rgba(255,255,255,.9),rgba(255,255,255,.12) 30%,rgba(255,255,255,0) 50%,rgba(255,255,255,.1) 70%,rgba(255,255,255,.6));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);opacity:var(--rim,1)}
+.lg::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(circle var(--glow-r,90px) at var(--mx,50%) var(--my,50%),rgba(255,255,255,.5),rgba(255,255,255,0));
+  opacity:0;transition:opacity .45s}
+.lg.pressed::before{opacity:.85;transition-duration:.12s}
+.press{transition:transform var(--spring-dur) var(--spring)}
+.press.pressed{transform:scale(var(--press-scale,1.08))}
+
+/* ---------- Navegação ---------- */
+.topnav{position:fixed;z-index:50;left:50%;top:calc(env(safe-area-inset-top,0px) + 12px);transform:translateX(-50%);
+  display:flex;align-items:center;gap:4px;padding:6px;max-width:calc(100% - 32px);
+  --lg-fill:var(--panel-fill);--lg-blur:14px;--lg-frost:12px;color:var(--panel-fg)}
+.brand{display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;font:650 15px/1 var(--font-display);text-decoration:none;white-space:nowrap}
+.brand-dot{width:20px;height:20px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#fff 0 8%,rgba(255,255,255,0) 30%),conic-gradient(from 200deg,#46c2ff,#7d6bff,#ff5c9d,#ffb648,#46c2ff);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.5)}
+.navlinks{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+.navlinks a{padding:8px 12px;border-radius:999px;text-decoration:none;font-size:14px;color:var(--panel-muted);white-space:nowrap}
+.navlinks a:hover{color:var(--panel-fg);background:rgba(127,127,127,.14)}
+.iconbtn{display:grid;place-items:center;width:36px;height:36px;border:0;border-radius:50%;background:transparent;cursor:pointer;color:var(--panel-fg);flex:none}
+.iconbtn:hover{background:rgba(127,127,127,.16)}
+.iconbtn svg{width:18px;height:18px}
+@media (max-width:720px){.navlinks{display:none}}
+
+/* ---------- Seções ---------- */
+section{padding-top:88px}
+.sec-head{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px 48px;align-items:end;margin-bottom:24px}
+.eyebrow{font:500 12px/1.2 var(--font-mono);letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+h2{font:700 clamp(30px,4.2vw,50px)/1.02 var(--font-display);letter-spacing:-.025em;margin:0;text-wrap:balance}
+.lead{margin:0;color:var(--muted);max-width:60ch;font-size:17px}
+@media (max-width:820px){.sec-head{grid-template-columns:minmax(0,1fr)}}
+
+.stage{position:relative;border-radius:28px;overflow:hidden;background:#0a0b10;box-shadow:0 0 0 1px var(--stage-edge)}
+.stage canvas{display:block;width:100%;height:100%}
+.spec{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 24px;margin:14px 4px 0;padding:0}
+.spec div{min-width:0}
+.spec dt{font:500 11px/1.3 var(--font-mono);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.spec dd{margin:4px 0 0;font-size:14px;line-height:1.45}
+@media (max-width:640px){.spec{grid-template-columns:minmax(0,1fr)}}
+.note{font-size:14px;color:var(--note);margin:12px 4px 0}
+
+/* ---------- Hero ---------- */
+.hero{position:relative;padding-top:calc(env(safe-area-inset-top,0px) + 76px)}
+.hero .stage{height:clamp(460px,74vh,700px);touch-action:pan-y}
+.handles{position:absolute;inset:0;pointer-events:none}
+.handle{position:absolute;left:0;top:0;pointer-events:auto;touch-action:none;cursor:grab;border-radius:999px;
+  display:grid;place-items:center;color:var(--handle-fg);font:600 13px/1 var(--font-body);letter-spacing:.01em;
+  text-shadow:0 1px 8px var(--handle-halo);user-select:none;-webkit-user-select:none}
+.handle:active{cursor:grabbing}
+.handle:focus-visible{outline:2px solid var(--handle-fg);outline-offset:4px}
+.hint{position:absolute;left:16px;top:16px;display:flex;align-items:center;gap:8px;padding:8px 14px 8px 10px;
+  font-size:13px;color:var(--handle-fg);--lg-fill:rgba(255,255,255,.1);--lg-frost:6px;pointer-events:none}
+.hint svg{width:18px;height:18px}
+.hero-fallback{display:none;position:absolute;inset:0;place-items:center;text-align:center;padding:24px;color:#fff;
+  background:radial-gradient(circle at 30% 30%,#5b5cf0,transparent 55%),radial-gradient(circle at 70% 70%,#ff4f86,transparent 50%),#0b0c14}
+.no-webgl .hero-fallback{display:grid}
+.hero-fallback p{font:800 clamp(56px,12vw,160px)/.9 var(--font-display);letter-spacing:-.04em;margin:0}
+.intro{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:16px 48px;margin-top:28px;align-items:start}
+.intro p{margin:0}
+.intro .lead{font-size:19px;color:var(--fg)}
+.intro .small{color:var(--muted);font-size:15px}
+@media (max-width:980px){.intro{grid-template-columns:minmax(0,1fr)}}
+
+/* Painel de ajustes */
+.tuner{position:absolute;right:16px;bottom:16px;width:316px;padding:14px 16px 12px;--r:24px;--lg-fill:var(--panel-fill);--lg-blur:22px;--lg-frost:18px;--lg-sat:1.5;
+  color:var(--panel-fg);font-size:13px;z-index:2;max-height:calc(100% - 32px);overflow:auto;scrollbar-width:thin}
+.hero .tuner{bottom:auto;top:calc(env(safe-area-inset-top,0px) + 76px + 16px);max-height:calc(clamp(460px,74vh,700px) - 32px)}
+.tuner-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.tuner-head strong{font:650 15px/1.2 var(--font-display)}
+.tuner.collapsed .tuner-body{display:none}
+.tuner.collapsed .tuner-head{margin-bottom:0}
+.tuner.collapsed{width:auto}
+.tgl-chev{transition:transform .3s}
+.tuner.collapsed .tgl-chev{transform:rotate(180deg)}
+.tuner-label{font:500 10.5px/1 var(--font-mono);letter-spacing:.09em;text-transform:uppercase;color:var(--panel-muted);margin:10px 0 6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:0;border-radius:999px;padding:6px 11px;font-size:12.5px;cursor:pointer;background:rgba(127,127,127,.16);color:var(--panel-fg)}
+.chip:hover{background:rgba(127,127,127,.26)}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.rows{display:grid;gap:7px}
+.row{display:grid;grid-template-columns:78px minmax(0,1fr) 54px;align-items:center;gap:8px}
+.row label{color:var(--panel-fg)}
+.row output{font:500 11.5px/1 var(--font-mono);color:var(--panel-muted);text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;margin:0;accent-color:var(--accent);height:18px}
+@media (max-width:900px){
+  .hero .tuner,.tuner{position:relative;right:auto;top:auto;bottom:auto;width:auto;max-height:none;margin-top:12px;
+    --lg-fill:var(--bg-raise);color:var(--fg);box-shadow:0 0 0 1px var(--line)}
+  .tuner::after{display:none}
+}
+
+/* ---------- Fusão ---------- */
+.morph .stage{height:clamp(440px,62vh,560px);touch-action:pan-y}
+.fab,.mitem,.tbtn{position:absolute;left:0;top:0;pointer-events:auto;border:0;padding:0;background:transparent;cursor:pointer;color:var(--handle-fg);
+  display:grid;place-items:center;border-radius:50%;touch-action:none;-webkit-tap-highlight-color:transparent}
+.fab svg{width:26px;height:26px;transition:transform .5s var(--spring);filter:drop-shadow(0 1px 6px var(--handle-halo))}
+.fab[aria-expanded="true"] svg{transform:rotate(135deg)}
+.mitem svg,.tbtn svg{width:20px;height:20px;filter:drop-shadow(0 1px 6px var(--handle-halo))}
+.mitem .tip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);font-size:11.5px;white-space:nowrap;
+  padding:3px 8px;border-radius:999px;background:rgba(10,12,20,.6);color:#fff;opacity:0;transition:opacity .2s;pointer-events:none}
+.mitem:hover .tip,.mitem:focus-visible .tip{opacity:1}
+.stage-actions{display:flex;flex-wrap:wrap;gap:8px;margin:14px 4px 0}
+.btn{border:0;border-radius:999px;padding:9px 16px;font-size:14px;cursor:pointer;background:var(--bg-raise);color:var(--fg);box-shadow:0 0 0 1px var(--line)}
+.btn:hover{box-shadow:0 0 0 1px var(--muted)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);box-shadow:none}
+
+/* ---------- SVG sobre o DOM ---------- */
+.dom .stage{height:clamp(460px,66vh,580px);background:#f4efe6}
+.dom-scroll{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;color:#1a1612;background:#f4efe6;padding:96px clamp(18px,4vw,48px) 120px}
+.dom-scroll h3{font:800 clamp(40px,7vw,84px)/.92 var(--font-display);letter-spacing:-.04em;margin:0 0 20px;max-width:12ch;text-wrap:balance}
+.dom-scroll p{max-width:62ch;margin:0 0 16px;font-size:16.5px}
+.dom-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:16px;margin:28px 0}
+.swatch{height:150px;border-radius:18px;position:relative;overflow:hidden}
+.swatch span{position:absolute;left:12px;bottom:10px;font:600 12px/1 var(--font-mono);color:#fff;letter-spacing:.04em}
+.sw1{background:linear-gradient(135deg,#ff6a3d,#ffb347)}
+.sw2{background:repeating-linear-gradient(45deg,#1b2cc1 0 14px,#f4efe6 14px 28px)}
+.sw3{background:radial-gradient(circle at 30% 35%,#ffe066 0 18%,transparent 19%),linear-gradient(160deg,#0d7c66,#2fc4a4)}
+.sw4{background:conic-gradient(from 90deg,#ff3d77,#ffa63d,#ffe13d,#3dff8b,#3dd9ff,#7a3dff,#ff3d77)}
+.ior{width:100%;border-collapse:collapse;font-size:15px;margin:8px 0 24px;max-width:560px}
+.ior th,.ior td{text-align:left;padding:9px 4px;border-bottom:1px solid rgba(26,22,18,.15)}
+.ior td:last-child,.ior th:last-child{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.bigquote{font:700 clamp(26px,4vw,40px)/1.1 var(--font-display);letter-spacing:-.02em;margin:32px 0;max-width:20ch;color:#1b2cc1}
+.dom-overlay{position:absolute;inset:0;pointer-events:none}
+.dom-overlay > *{pointer-events:auto}
+.dom-bar{position:absolute;left:14px;right:14px;top:14px;height:58px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 8px 0 18px;--lg-fill:rgba(255,255,255,.16);--lg-frost:4px;color:#1a1612}
+.dom-bar span{display:flex;gap:2px}
+.dom-bar strong{font:700 17px/1 var(--font-display)}
+.dom-bar .iconbtn{color:#1a1612}
+.dom-lens{position:absolute;left:0;top:0;width:150px;height:150px;touch-action:none;cursor:grab;--lg-fill:rgba(255,255,255,.04);--lg-sat:1.25}
+.dom-lens:active{cursor:grabbing}
+.dom-dock{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;gap:2px;padding:6px;--lg-fill:rgba(255,255,255,.18);--lg-frost:3px}
+.dom-dock .iconbtn{width:44px;height:44px;color:#1a1612}
+.dom-dock .iconbtn svg{width:20px;height:20px}
+.dom-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:12px 24px;margin:14px 4px 0;align-items:center}
+.dom-controls .row{grid-template-columns:86px minmax(0,1fr) 54px}
+.dom-controls output{font:500 12px/1 var(--font-mono);color:var(--muted);text-align:right}
+.svg-glass #dom-stage.no-refr .lg.has-map{-webkit-backdrop-filter:blur(8px) saturate(1.7);backdrop-filter:blur(8px) saturate(1.7)}
+.check{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:15px}
+.check input{width:18px;height:18px;accent-color:var(--accent);margin:0}
+
+/* ---------- Componentes ---------- */
+.comp-grid{display:grid;grid-template-columns:340px minmax(0,1fr);gap:24px;align-items:stretch}
+@media (max-width:900px){.comp-grid{grid-template-columns:minmax(0,1fr);justify-items:center}}
+.phone{position:relative;width:340px;max-width:100%;height:700px;border-radius:54px;padding:10px;background:#09090b;
+  box-shadow:0 0 0 1.5px #2c2e35,inset 0 0 0 1.5px #3a3c44,0 40px 70px -30px rgba(0,0,0,.55)}
+.screen{position:relative;height:100%;border-radius:44px;overflow:hidden;background:var(--app-bg);color:var(--app-fg)}
+.screen-scroll{position:absolute;inset:0;overflow-y:auto;padding:58px 16px 190px;scrollbar-width:none}
+.screen-scroll::-webkit-scrollbar{display:none}
+.app-title{font:750 31px/1.1 var(--font-display);letter-spacing:-.02em;margin:34px 0 14px}
+.app-sub{font:650 19px/1.2 var(--font-display);margin:22px 0 10px}
+.feature{height:230px;border-radius:22px;position:relative;overflow:hidden;color:#fff;padding:16px;display:flex;flex-direction:column;justify-content:flex-end;
+  background:radial-gradient(circle at 72% 28%,#ffd36b 0 12%,transparent 13%),radial-gradient(120% 80% at 20% 0%,#ff4f86,transparent 60%),linear-gradient(170deg,#4b2bd6,#0b1840 75%)}
+.feature::before{content:"";position:absolute;inset:auto -10% -30% -10%;height:60%;background:repeating-radial-gradient(ellipse at 50% 100%,rgba(255,255,255,.18) 0 2px,transparent 3px 14px)}
+.feature small{font:600 11px/1 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;opacity:.85;position:relative}
+.feature b{font:750 26px/1.05 var(--font-display);position:relative;margin-top:6px}
+.albums{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.album .art{aspect-ratio:1;max-width:100%;border-radius:14px;position:relative;overflow:hidden;background:linear-gradient(140deg,var(--a),var(--b))}
+.album .art::after{content:"";position:absolute;inset:0;background:var(--p)}
+.album b{display:block;font-size:13.5px;margin-top:7px;line-height:1.2}
+.album span{display:block;font-size:12.5px;color:var(--app-muted)}
+.songs{list-style:none;margin:0;padding:0}
+.songs li{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid rgba(127,127,127,.18)}
+.songs .mini-art{width:44px;height:44px;border-radius:9px;flex:none;background:linear-gradient(140deg,var(--a),var(--b))}
+.songs b{display:block;font-size:14px;font-weight:550}
+.songs span{display:block;font-size:12.5px;color:var(--app-muted)}
+.status{position:absolute;left:0;right:0;top:0;height:50px;display:flex;justify-content:space-between;align-items:center;padding:6px 30px 0 34px;
+  font:650 15px/1 var(--font-body);pointer-events:none;z-index:3}
+.status i{display:flex;gap:5px;align-items:center}
+.status i b{display:block;width:17px;height:10px;border-radius:3px;border:1.4px solid currentColor;position:relative}
+.status i b::after{content:"";position:absolute;inset:1.2px 4px 1.2px 1.2px;background:currentColor;border-radius:1px}
+.island{position:absolute;left:50%;top:11px;width:104px;height:31px;margin-left:-52px;border-radius:20px;background:#000;z-index:4}
+.app-top{position:absolute;right:14px;top:54px;display:flex;gap:8px;z-index:3}
+.circ{width:42px;height:42px;display:grid;place-items:center;border:0;cursor:pointer;color:var(--app-fg);--lg-fill:rgba(127,127,127,.12)}
+.circ svg{width:19px;height:19px}
+.mini{position:absolute;left:12px;right:12px;bottom:92px;height:58px;display:flex;align-items:center;gap:10px;padding:0 8px 0 9px;z-index:3;
+  --lg-fill:rgba(127,127,127,.14);--lg-frost:6px;color:var(--app-fg)}
+.mini .mini-art{width:40px;height:40px;border-radius:10px;flex:none;background:linear-gradient(140deg,#ff9a3d,#ff3d77)}
+.mini div{min-width:0;flex:1}
+.mini b{display:block;font-size:13.5px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini span{display:block;font-size:12px;color:var(--app-muted)}
+.mini .iconbtn{color:var(--app-fg);width:38px;height:38px}
+.tabwrap{position:absolute;left:12px;right:12px;bottom:22px;height:62px;display:flex;gap:10px;z-index:3}
+.tabbar{position:relative;flex:1;min-width:0;height:62px;display:flex;padding:4px;touch-action:none}
+.tabbar-bg{position:absolute;inset:0;--lg-fill:rgba(127,127,127,.12);--lg-frost:4px}
+.tab-fill{position:absolute;left:0;top:4px;height:54px;border-radius:999px;background:rgba(127,127,127,.2);pointer-events:none}
+.tab{position:relative;flex:1;min-width:0;border:0;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  color:var(--app-fg);font-size:10px;font-weight:550;letter-spacing:-.01em;white-space:nowrap;border-radius:999px;-webkit-tap-highlight-color:transparent;padding:0}
+.tab svg{width:23px;height:23px}
+.tab[aria-selected="true"]{color:#fa2d55}
+.tab-lens{position:absolute;left:0;top:-3px;height:68px;pointer-events:none;opacity:0;transition:opacity .25s;
+  --lg-fill:rgba(255,255,255,.04);--lg-sat:1.2}
+.tabbar.dragging .tab-lens{opacity:1}
+.search{width:62px;height:62px;flex:none;border:0;display:grid;place-items:center;cursor:pointer;color:var(--app-fg);--lg-fill:rgba(127,127,127,.12)}
+.search svg{width:23px;height:23px}
+
+.board{position:relative;border-radius:28px;overflow:hidden;padding:clamp(18px,3vw,32px);min-height:700px;width:100%;
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-content:start;color:#fff;
+  background:
+    radial-gradient(circle at 1px 1px,rgba(255,255,255,.35) 1px,transparent 1.6px) 0 0/22px 22px,
+    radial-gradient(60% 50% at 15% 10%,#ff8a3d,transparent 70%),
+    radial-gradient(50% 50% at 90% 30%,#ff2e7e,transparent 70%),
+    radial-gradient(70% 60% at 60% 100%,#4a3cff,transparent 70%),
+    linear-gradient(160deg,#b0249a,#2a1a8c);
+  box-shadow:0 0 0 1px var(--stage-edge)}
+@media (max-width:560px){.board{grid-template-columns:minmax(0,1fr)}}
+.tile{position:relative;isolation:isolate;border-radius:30px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.tile-bg{position:absolute;inset:0;z-index:-1;--r:30px;--lg-fill:rgba(255,255,255,.1);--lg-frost:6px}
+.tile.wide{grid-column:1/-1}
+.tile h4{margin:0;font:600 12px/1 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;opacity:.85}
+.trow{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:15px}
+.switch{position:relative;width:64px;height:30px;border:0;padding:0;background:transparent;cursor:pointer;flex:none;touch-action:none}
+.switch-track{position:absolute;inset:0;border-radius:999px;background:rgba(255,255,255,.25);transition:background .3s}
+.switch[aria-checked="true"] .switch-track{background:#34c759}
+.knob{position:absolute;left:3px;top:3px;width:38px;height:24px;border-radius:999px;background:#fff;
+  box-shadow:0 2px 6px rgba(0,0,0,.25);transition:transform .5s var(--spring),background .2s;--lg-blur:0px;--lg-fill:#fff}
+.switch[aria-checked="true"] .knob{transform:translateX(20px)}
+.switch.pressed .knob{transform:translateX(var(--kx,0px)) scale(1.45,1.5);--lg-fill:rgba(255,255,255,.06);background:var(--lg-fill)}
+.switch[aria-checked="true"].pressed{--kx:20px}
+.gslider{position:relative;height:34px;cursor:pointer;touch-action:none}
+.gs-track{position:absolute;left:0;right:0;top:50%;height:8px;margin-top:-4px;border-radius:999px;background:rgba(255,255,255,.25);overflow:hidden}
+.gs-fill{position:absolute;left:0;top:0;bottom:0;width:60%;background:#fff;border-radius:999px}
+.gs-thumb{position:absolute;top:50%;left:0;width:40px;height:26px;margin:-13px 0 0 -20px;border-radius:999px;background:#fff;
+  box-shadow:0 2px 8px rgba(0,0,0,.25);transition:transform .45s var(--spring);--lg-blur:0px;--lg-fill:#fff}
+.gslider.pressed .gs-thumb{transform:scale(1.55);background:var(--lg-fill);--lg-fill:rgba(255,255,255,.05)}
+.switch.pressed .knob,.gslider.pressed .gs-thumb{box-shadow:inset 0 0 0 1px rgba(255,255,255,.3),inset 1.6px 1.6px 1px -1px rgba(255,255,255,.9),inset -1.6px -1.6px 1px -1px rgba(255,255,255,.5),0 6px 16px -4px rgba(0,0,0,.3)}
+.seg{position:relative;display:flex;padding:3px;height:40px;touch-action:none}
+.seg-bg{position:absolute;inset:0;--lg-fill:rgba(255,255,255,.12)}
+.seg-fill{position:absolute;left:0;top:3px;height:34px;border-radius:999px;background:rgba(255,255,255,.9);pointer-events:none}
+.seg button{position:relative;flex:1;border:0;background:transparent;cursor:pointer;font-size:14px;font-weight:550;color:#fff;border-radius:999px;transition:color .25s}
+.seg button[aria-selected="true"]{color:#2a1a5e}
+.seg-lens{position:absolute;left:0;top:-4px;height:48px;opacity:0;pointer-events:none;transition:opacity .2s;--lg-fill:rgba(255,255,255,.04)}
+.seg.dragging .seg-lens{opacity:1}
+.btns{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.gbtn{border:0;padding:12px 20px;font-size:15px;font-weight:600;cursor:pointer;color:#fff;--lg-fill:rgba(255,255,255,.12)}
+.gbtn.tinted{--lg-fill:rgba(10,132,255,.55)}
+.gbtn.round{width:48px;height:48px;padding:0;display:grid;place-items:center}
+.gbtn.round svg{width:22px;height:22px}
+.clock{font:700 clamp(54px,9vw,88px)/.9 var(--font-display);letter-spacing:-.04em;margin:0;text-shadow:0 2px 24px rgba(0,0,0,.18)}
+.clock + p{margin:6px 0 0;opacity:.85;font-size:15px}
+
+/* ---------- Anatomia ---------- */
+.ana{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:900px){.ana{grid-template-columns:minmax(0,1fr)}}
+.ana-stage{position:relative;height:440px;border-radius:28px;overflow:hidden;display:grid;place-items:center;
+  background:
+    repeating-linear-gradient(-45deg,rgba(255,255,255,.9) 0 10px,transparent 10px 30px),
+    radial-gradient(50% 60% at 20% 30%,#00c2ff,transparent 70%),
+    radial-gradient(50% 60% at 85% 70%,#ff5277,transparent 70%),
+    linear-gradient(120deg,#ffcf3a,#ff6a3d);
+  box-shadow:0 0 0 1px var(--stage-edge)}
+.ana-stage .bignum{position:absolute;left:6%;top:50%;transform:translateY(-50%);font:800 clamp(90px,16vw,190px)/.8 var(--font-display);letter-spacing:-.05em;color:#14123a;margin:0;white-space:nowrap}
+.ana-card{position:relative;width:min(300px,78%);height:190px;--r:44px;padding:22px;color:#fff;display:flex;flex-direction:column;justify-content:space-between;
+  --lg-blur:var(--a-blur,3px);--lg-frost:var(--a-blur,3px);--lg-sat:var(--a-sat,1.8);--lg-fill:var(--a-tint,rgba(255,255,255,.12));--rim:var(--a-rim,1);
+  transition:box-shadow .3s}
+.ana-card b{font:700 22px/1.1 var(--font-display);text-shadow:0 1px 10px rgba(0,0,0,.25)}
+.ana-card small{font:500 12px/1.3 var(--font-mono);letter-spacing:.06em;text-shadow:0 1px 8px rgba(0,0,0,.3)}
+.ana-card.no-shadow{box-shadow:inset 0 0 0 1px rgba(255,255,255,.14),inset 1.6px 1.6px 1px -1px rgba(255,255,255,var(--lg-spec,.75)),inset -1.6px -1.6px 1px -1px rgba(255,255,255,.4)}
+.ana-card.no-rim{--lg-spec:0;--lg-hair:0}
+.svg-glass .ana-card.has-map.no-refr{-webkit-backdrop-filter:blur(var(--lg-blur)) saturate(var(--lg-sat));backdrop-filter:blur(var(--lg-blur)) saturate(var(--lg-sat))}
+.layers{display:grid;gap:4px;margin:0;padding:0;border:0}
+.layers label{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;align-items:start;padding:10px 12px;border-radius:14px;cursor:pointer}
+.layers label:hover{background:var(--bg-raise)}
+.layers input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--accent)}
+.layers b{display:block;font-weight:600;font-size:15px}
+.layers span{display:block;color:var(--muted);font-size:13.5px;line-height:1.45}
+.code{position:relative;margin-top:16px;border-radius:18px;background:var(--code-bg);color:var(--code-fg);font:13px/1.6 var(--font-mono);overflow:hidden}
+.code pre{margin:0;padding:16px 18px;overflow-x:auto;white-space:pre}
+.code .k{color:var(--code-key)} .code .v{color:var(--code-val)} .code .c{color:var(--code-dim)}
+.copy{position:absolute;right:10px;top:10px;border:0;border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer;background:rgba(255,255,255,.12);color:var(--code-fg)}
+.copy:hover{background:rgba(255,255,255,.2)}
+
+footer{margin-top:96px;padding-top:24px;border-top:1px solid var(--line);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px 48px;color:var(--muted);font-size:14px}
+footer p{margin:0;max-width:60ch}
+footer b{color:var(--fg);font-weight:600}
+@media (max-width:760px){footer{grid-template-columns:minmax(0,1fr)}}
+@media (prefers-reduced-motion: reduce){.press,.knob,.gs-thumb,.fab svg{transition:none}}
+</style>
+</head>
+<body>
+<svg id="lg-defs" width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs></defs></svg>
+
+<nav class="topnav lg" aria-label="Seções">
+  <a class="brand" href="#topo"><span class="brand-dot" aria-hidden="true"></span>Liquid Glass Lab</a>
+  <div class="navlinks">
+    <a href="#topo">Refração</a>
+    <a href="#fusao">Fusão</a>
+    <a href="#svg">SVG no DOM</a>
+    <a href="#componentes">Componentes</a>
+    <a href="#anatomia">Anatomia</a>
+  </div>
+  <button class="iconbtn" id="theme-btn" type="button" aria-label="Alternar tema claro/escuro"></button>
+</nav>
+
+<div class="page">
+<header class="hero" id="topo">
+  <h1 class="sr-only">Liquid Glass Lab</h1>
+  <div class="stage" id="hero-stage">
+    <canvas id="hero-gl" role="img" aria-label="Gotas de vidro líquido sobre o título Liquid Glass, renderizadas em WebGL"></canvas>
+    <div class="handles" id="hero-handles"></div>
+    <div class="hint lg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/></svg>Arraste as gotas de vidro</div>
+    <div class="hero-fallback"><p>Liquid Glass</p></div>
+  </div>
+
+  <aside class="tuner lg" id="tuner" aria-label="Ajustes do vidro">
+    <div class="tuner-head">
+      <strong>Ajustes do vidro</strong>
+      <button class="iconbtn" id="tuner-toggle" type="button" aria-expanded="true" aria-controls="tuner-body" aria-label="Recolher ajustes"><svg class="tgl-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg></button>
+    </div>
+    <div class="tuner-body" id="tuner-body">
+      <p class="tuner-label">Fundo</p>
+      <div class="chips" id="scene-chips">
+        <button class="chip" type="button" data-scene="titulo" aria-pressed="true">Título</button>
+        <button class="chip" type="button" data-scene="listras" aria-pressed="false">Listras</button>
+        <button class="chip" type="button" data-scene="texto" aria-pressed="false">Texto</button>
+        <button class="chip" type="button" data-scene="paisagem" aria-pressed="false">Paisagem</button>
+      </div>
+      <p class="tuner-label">Predefinições</p>
+      <div class="chips" id="preset-chips">
+        <button class="chip" type="button" data-preset="liquid" aria-pressed="true">Liquid Glass</button>
+        <button class="chip" type="button" data-preset="gota" aria-pressed="false">Gota d'água</button>
+        <button class="chip" type="button" data-preset="fosco" aria-pressed="false">Fosco</button>
+        <button class="chip" type="button" data-preset="cristal" aria-pressed="false">Cristal</button>
+        <button class="chip" type="button" data-preset="escuro" aria-pressed="false">Escuro</button>
+      </div>
+      <p class="tuner-label">Parâmetros</p>
+      <div class="rows">
+        <div class="row"><label for="g-refr">Refração</label><input type="range" id="g-refr" min="0" max="60" step="1"><output for="g-refr" id="o-refr"></output></div>
+        <div class="row"><label for="g-bevel">Bisel</label><input type="range" id="g-bevel" min="4" max="80" step="1"><output for="g-bevel" id="o-bevel"></output></div>
+        <div class="row"><label for="g-disp">Dispersão</label><input type="range" id="g-disp" min="0" max="100" step="1"><output for="g-disp" id="o-disp"></output></div>
+        <div class="row"><label for="g-frost">Fosco</label><input type="range" id="g-frost" min="0" max="24" step="0.5"><output for="g-frost" id="o-frost"></output></div>
+        <div class="row"><label for="g-spec">Brilho</label><input type="range" id="g-spec" min="0" max="100" step="1"><output for="g-spec" id="o-spec"></output></div>
+        <div class="row"><label for="g-merge">Fusão</label><input type="range" id="g-merge" min="0" max="140" step="1"><output for="g-merge" id="o-merge"></output></div>
+        <div class="row"><label for="g-zoom">Lupa</label><input type="range" id="g-zoom" min="100" max="200" step="1"><output for="g-zoom" id="o-zoom"></output></div>
+        <div class="row"><label for="g-light">Luz</label><input type="range" id="g-light" min="0" max="360" step="1"><output for="g-light" id="o-light"></output></div>
+        <div class="row"><label for="g-shadow">Sombra</label><input type="range" id="g-shadow" min="0" max="100" step="1"><output for="g-shadow" id="o-shadow"></output></div>
+        <div class="row"><label for="g-tint">Tom</label><input type="range" id="g-tint" min="-60" max="60" step="1"><output for="g-tint" id="o-tint"></output></div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="intro">
+    <p class="lead">Liquid Glass é o material que a Apple trouxe no iOS 26: um vidro que dobra a luz nas bordas, separa as cores como um prisma e se funde com outros vidros como gotas d'água. Esta página reconstrói esse material de cinco jeitos, do shader em WebGL ao CSS puro.</p>
+    <p class="small">O palco acima roda num shader GLSL. Para cada pixel, o shader mede a distância até a borda da gota, inclina a superfície num bisel arredondado e busca o fundo num ponto mais para dentro. Arraste as gotas, encoste uma na outra e mexa nos ajustes.</p>
+  </div>
+  <dl class="spec">
+    <div><dt>Técnica</dt><dd>WebGL em 4 passes: cena, desfoque horizontal, desfoque vertical e vidro com SDF</dd></div>
+    <div><dt>Funciona em</dt><dd>Qualquer navegador com WebGL: Chrome, Edge, Safari e Firefox</dd></div>
+    <div><dt>Custo</dt><dd>Médio. Cerca de 10 leituras de textura por pixel coberto de vidro</dd></div>
+  </dl>
+</header>
+
+<main>
+<section class="morph" id="fusao">
+  <div class="sec-head">
+    <div><p class="eyebrow">WebGL · união suave de SDFs</p><h2>Fusão líquida</h2></div>
+    <p class="lead">No iOS 26 um botão de vidro se divide em vários e depois volta a ser um só. Aqui isso é uma união suave de funções de distância: quando duas formas se aproximam, o shader preenche o vão com uma ponte de vidro. Toque no botão + ou arraste-o para ver os itens escorrendo atrás.</p>
+  </div>
+  <div class="stage" id="morph-stage">
+    <canvas id="morph-gl" role="img" aria-label="Galeria de capas de álbum rolando sob botões de vidro que se dividem e se fundem"></canvas>
+    <div class="handles" id="morph-ui">
+      <button class="tbtn" id="m-back" type="button" aria-label="Voltar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <button class="tbtn" id="m-fwd" type="button" aria-label="Avançar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+      <button class="mitem" type="button" tabindex="-1" aria-label="Câmera"><span class="tip">Câmera</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+      <button class="mitem" type="button" tabindex="-1" aria-label="Fotos"><span class="tip">Fotos</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg></button>
+      <button class="mitem" type="button" tabindex="-1" aria-label="Áudio"><span class="tip">Áudio</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+      <button class="mitem" type="button" tabindex="-1" aria-label="Arquivo"><span class="tip">Arquivo</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></button>
+      <button class="mitem" type="button" tabindex="-1" aria-label="Local"><span class="tip">Local</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></button>
+      <button class="fab" id="m-fab" type="button" aria-expanded="false" aria-label="Abrir menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+    </div>
+  </div>
+  <div class="stage-actions">
+    <button class="btn primary" id="m-open" type="button">Abrir menu</button>
+    <button class="btn" id="m-split" type="button">Separar botões</button>
+  </div>
+  <dl class="spec">
+    <div><dt>Técnica</dt><dd>smin() entre até 8 retângulos arredondados; molas com atraso diferente para cada item</dd></div>
+    <div><dt>Funciona em</dt><dd>Qualquer navegador com WebGL</dd></div>
+    <div><dt>Custo</dt><dd>Baixo. A forma é calculada, não desenhada: mudar tamanho ou posição não custa nada</dd></div>
+  </dl>
+</section>
+
+<section class="dom" id="svg">
+  <div class="sec-head">
+    <div><p class="eyebrow">SVG · backdrop-filter: url()</p><h2>Refração sobre o DOM</h2></div>
+    <p class="lead">O WebGL só refrata o que ele mesmo desenha. Para dobrar HTML de verdade, com texto selecionável e rolagem, o vidro usa um filtro SVG dentro do backdrop-filter. Role o artigo e arraste a lupa por cima do texto.</p>
+  </div>
+  <div class="stage" id="dom-stage">
+    <div class="dom-scroll" id="dom-scroll" tabindex="0" aria-label="Artigo de exemplo sob o vidro">
+      <h3>A luz faz curva no vidro</h3>
+      <p>Quando a luz passa do ar para o vidro, ela desacelera e muda de direção. A lei de Snell descreve essa curva: n₁ · sen θ₁ = n₂ · sen θ₂. Quanto maior o índice de refração, mais forte a curva.</p>
+      <p>Num bloco de vidro com bordas arredondadas, o centro é plano e deixa a imagem passar quase intacta. No bisel a superfície inclina e os raios são puxados para dentro. Por isso o conteúdo parece escorrer pela borda.</p>
+      <div class="dom-cols">
+        <div class="swatch sw1"><span>λ 620 nm</span></div>
+        <div class="swatch sw2"><span>listras a 45°</span></div>
+        <div class="swatch sw3"><span>sol de meio-dia</span></div>
+        <div class="swatch sw4"><span>espectro visível</span></div>
+      </div>
+      <table class="ior">
+        <thead><tr><th>Material</th><th>Índice n (589 nm)</th></tr></thead>
+        <tbody>
+          <tr><td>Ar</td><td>1,000</td></tr>
+          <tr><td>Água</td><td>1,333</td></tr>
+          <tr><td>Vidro crown (BK7)</td><td>1,517</td></tr>
+          <tr><td>Vidro flint (F2)</td><td>1,620</td></tr>
+          <tr><td>Safira</td><td>1,770</td></tr>
+          <tr><td>Diamante</td><td>2,417</td></tr>
+        </tbody>
+      </table>
+      <p>O índice muda com a cor. O vermelho curva menos que o azul, e essa diferença, a dispersão, é medida pelo número de Abbe: cerca de 64 no BK7 e 36 no flint. Nas bordas do vidro ela vira uma franja colorida. Aqui a franja sai de três mapas de deslocamento com escalas um pouco diferentes, um para cada canal.</p>
+      <p class="bigquote">O filtro lê o que está atrás do elemento e redesenha cada pixel a partir de outro ponto.</p>
+      <p>Neste palco o vidro usa backdrop-filter: url(#filtro). O filtro carrega um mapa de deslocamento gerado em JavaScript: o canal vermelho guarda o deslocamento horizontal e o verde, o vertical. O feDisplacementMap usa esse mapa para buscar cada pixel do fundo em outro lugar.</p>
+      <p><b>Como o mapa é calculado:</b></p>
+      <ol>
+        <li>Para cada pixel, mede a distância até a borda arredondada (uma SDF).</li>
+        <li>No bisel, empurra a amostra para dentro, com mais força perto da borda.</li>
+        <li>Na lupa, aproxima a amostra do centro para ampliar.</li>
+        <li>Grava o vetor nos canais R e G, com 128 valendo zero.</li>
+      </ol>
+      <div class="dom-cols">
+        <div class="swatch sw4"><span>360°</span></div>
+        <div class="swatch sw2"><span>padrão de teste</span></div>
+      </div>
+      <p>Como o filtro trabalha sobre pixels já desenhados, qualquer coisa atrás do vidro entra no efeito: texto, imagens, vídeo, até outro canvas. O custo cresce com a área do vidro, não com a complexidade da página.</p>
+    </div>
+    <div class="dom-overlay">
+      <div class="dom-bar lg" data-glass data-refr="18" data-bevel="22" data-disp="0.25">
+        <strong>Óptica</strong>
+        <span>
+          <button class="iconbtn" type="button" aria-label="Buscar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></button>
+          <button class="iconbtn" type="button" aria-label="Mais opções"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+        </span>
+      </div>
+      <div class="dom-lens lg" id="dom-lens" tabindex="0" role="img" aria-label="Lupa de vidro. Arraste, ou use as setas do teclado para mover." data-glass data-refr="22" data-bevel="26" data-zoom="1.45" data-disp="0.35"></div>
+      <div class="dom-dock lg" data-glass data-refr="16" data-bevel="20" data-disp="0.25">
+        <button class="iconbtn" type="button" aria-label="Tamanho do texto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18l5-12 5 12M5 14h6M14 18l3.5-8 3.5 8M15 16h5"/></svg></button>
+        <button class="iconbtn" type="button" aria-label="Salvar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg></button>
+        <button class="iconbtn" type="button" aria-label="Curtir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></button>
+        <button class="iconbtn" type="button" aria-label="Compartilhar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg></button>
+      </div>
+    </div>
+  </div>
+  <div class="dom-controls">
+    <label class="check"><input type="checkbox" id="d-on" checked> Refração SVG ligada</label>
+    <div class="row"><label for="d-refr">Refração</label><input type="range" id="d-refr" min="0" max="40" step="1" value="18"><output id="o-drefr">18 px</output></div>
+    <div class="row"><label for="d-bevel">Bisel</label><input type="range" id="d-bevel" min="6" max="40" step="1" value="22"><output id="o-dbevel">22 px</output></div>
+    <div class="row"><label for="d-zoom">Lupa</label><input type="range" id="d-zoom" min="100" max="200" step="5" value="145"><output id="o-dzoom">1,45×</output></div>
+  </div>
+  <p class="note" id="svg-note" hidden>Este navegador não aplica filtros SVG dentro de backdrop-filter. Só Chrome, Edge e outros navegadores Chromium fazem isso hoje. Você está vendo os mesmos elementos com desfoque comum.</p>
+  <dl class="spec">
+    <div><dt>Técnica</dt><dd>feImage com mapa gerado em canvas, três feDisplacementMap (R, G, B) e feBlend</dd></div>
+    <div><dt>Funciona em</dt><dd>Refração: Chrome, Edge, Opera. Safari e Firefox: desfoque comum</dd></div>
+    <div><dt>Custo</dt><dd>Baixo a médio. O mapa só é recalculado quando o elemento muda de tamanho</dd></div>
+  </dl>
+</section>
+
+<section id="componentes">
+  <div class="sec-head">
+    <div><p class="eyebrow">CSS + SVG · física de mola</p><h2>Componentes no estilo iOS 26</h2></div>
+    <p class="lead">Barras, botões e controles que viram lente quando você toca. Arraste o dedo pela barra de abas: a seleção estica na direção do movimento e amplia os ícones por baixo. Segure um interruptor ou o controle de volume para ver o botão virar vidro.</p>
+  </div>
+  <div class="comp-grid">
+    <div class="phone">
+      <div class="screen">
+        <div class="island" aria-hidden="true"></div>
+        <div class="status" aria-hidden="true"><span>9:41</span><i><svg width="18" height="11" viewBox="0 0 18 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="6" rx="1"/><rect x="10" y="2.5" width="3" height="8.5" rx="1"/><rect x="15" y="0" width="3" height="11" rx="1"/></svg><b></b></i></div>
+        <div class="screen-scroll" id="phone-scroll" tabindex="0" aria-label="Conteúdo do app de exemplo">
+          <p class="app-title">Ouvir agora</p>
+          <div class="feature"><small>Estação pessoal</small><b>Mix Vidro Líquido</b></div>
+          <p class="app-sub">Ouvidos recentemente</p>
+          <div class="albums">
+            <div class="album"><div class="art" style="--a:#ff5f6d;--b:#ffc371;--p:radial-gradient(circle at 50% 120%,rgba(255,255,255,.55) 0 30%,transparent 31%)"></div><b>Maré Alta</b><span>Lagoa Azul</span></div>
+            <div class="album"><div class="art" style="--a:#4facfe;--b:#00f2fe;--p:repeating-linear-gradient(0deg,rgba(255,255,255,.25) 0 6px,transparent 6px 16px)"></div><b>Vidro Azul</b><span>Cobalto</span></div>
+            <div class="album"><div class="art" style="--a:#7f00ff;--b:#e100ff;--p:radial-gradient(circle at 30% 30%,#fff 0 9%,transparent 10%)"></div><b>Neon 84</b><span>Os Prismas</span></div>
+            <div class="album"><div class="art" style="--a:#11998e;--b:#38ef7d;--p:conic-gradient(from 0deg at 50% 50%,rgba(255,255,255,.3) 0 25%,transparent 0 50%,rgba(255,255,255,.3) 0 75%,transparent 0)"></div><b>Cítrico</b><span>Sal &amp; Sol</span></div>
+            <div class="album"><div class="art" style="--a:#232526;--b:#606c88;--p:radial-gradient(circle at 70% 30%,#f7f3d0 0 14%,transparent 15%)"></div><b>Lua Cheia</b><span>Noturno</span></div>
+            <div class="album"><div class="art" style="--a:#f83600;--b:#f9d423;--p:repeating-radial-gradient(circle at 50% 50%,rgba(255,255,255,.28) 0 4px,transparent 4px 14px)"></div><b>Areia Quente</b><span>Duna</span></div>
+          </div>
+          <p class="app-sub">Mais tocadas</p>
+          <ul class="songs">
+            <li><span class="mini-art" style="--a:#ff9a3d;--b:#ff3d77"></span><div><b>Refração</b><span>Os Prismas</span></div></li>
+            <li><span class="mini-art" style="--a:#4facfe;--b:#7f00ff"></span><div><b>Índice 1,52</b><span>Cobalto</span></div></li>
+            <li><span class="mini-art" style="--a:#11998e;--b:#f9d423"></span><div><b>Bisel</b><span>Sal &amp; Sol</span></div></li>
+            <li><span class="mini-art" style="--a:#e100ff;--b:#ff5f6d"></span><div><b>Lei de Snell</b><span>Lagoa Azul</span></div></li>
+            <li><span class="mini-art" style="--a:#232526;--b:#4facfe"></span><div><b>Ângulo Crítico</b><span>Noturno</span></div></li>
+            <li><span class="mini-art" style="--a:#f83600;--b:#7f00ff"></span><div><b>Número de Abbe</b><span>Duna</span></div></li>
+          </ul>
+        </div>
+        <div class="app-top"><button class="circ lg press" type="button" aria-label="Perfil" data-glass data-refr="10" data-bevel="12"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></button></div>
+        <div class="mini lg press" style="--press-scale:1.03" data-glass data-refr="12" data-bevel="14">
+          <span class="mini-art" aria-hidden="true"></span>
+          <div><b>Refração</b><span>Os Prismas</span></div>
+          <button class="iconbtn" type="button" aria-label="Tocar"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l12.5-7.5z"/></svg></button>
+          <button class="iconbtn" type="button" aria-label="Próxima"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.5 5.5v13L12 12zM12 5.5v13l8.5-6.5z"/></svg></button>
+        </div>
+        <div class="tabwrap">
+          <div class="tabbar" id="tabbar" role="tablist" aria-label="Seções do app">
+            <div class="tabbar-bg lg" data-glass data-refr="12" data-bevel="14"></div>
+            <div class="tab-fill"></div>
+            <button class="tab" type="button" role="tab" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3.5 11L12 4l8.5 7v9h-5.5v-6h-6v6H3.5z"/></svg>Início</button>
+            <button class="tab" type="button" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>Novidades</button>
+            <button class="tab" type="button" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="2"/><path d="M8.5 15.5a5 5 0 0 1 0-7M15.5 8.5a5 5 0 0 1 0 7M5.6 18.4a9 9 0 0 1 0-12.8M18.4 5.6a9 9 0 0 1 0 12.8"/></svg>Rádio</button>
+            <button class="tab" type="button" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 4v16M10 4v16M14.5 4.5l5 15"/></svg>Biblioteca</button>
+            <div class="tab-lens lg" aria-hidden="true" data-glass data-refr="10" data-bevel="14" data-zoom="1.3" data-disp="0.3"></div>
+          </div>
+          <button class="search lg press" type="button" aria-label="Buscar" data-glass data-refr="12" data-bevel="14"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="board">
+      <div class="tile wide" style="padding-bottom:0">
+        <p class="clock">9:41</p><p>Terça-feira, 6 de outubro</p>
+      </div>
+      <div class="tile"><div class="tile-bg lg" data-glass data-refr="9" data-bevel="16"></div>
+        <h4>Conexões</h4>
+        <div class="trow"><span id="lb-wifi">Wi-Fi</span><button class="switch" type="button" role="switch" aria-checked="true" aria-labelledby="lb-wifi"><span class="switch-track"></span><span class="knob lg" data-glass data-refr="6" data-bevel="9" data-zoom="1.25" data-disp="0.3"></span></button></div>
+        <div class="trow"><span id="lb-bt">Bluetooth</span><button class="switch" type="button" role="switch" aria-checked="true" aria-labelledby="lb-bt"><span class="switch-track"></span><span class="knob lg" data-glass data-refr="6" data-bevel="9" data-zoom="1.25" data-disp="0.3"></span></button></div>
+        <div class="trow"><span id="lb-air">Modo avião</span><button class="switch" type="button" role="switch" aria-checked="false" aria-labelledby="lb-air"><span class="switch-track"></span><span class="knob lg" data-glass data-refr="6" data-bevel="9" data-zoom="1.25" data-disp="0.3"></span></button></div>
+      </div>
+      <div class="tile"><div class="tile-bg lg" data-glass data-refr="9" data-bevel="16"></div>
+        <h4 id="lb-vol">Volume</h4>
+        <div class="gslider" id="vol" role="slider" tabindex="0" aria-labelledby="lb-vol" aria-valuemin="0" aria-valuemax="100" aria-valuenow="62"><div class="gs-track"><div class="gs-fill"></div></div><div class="gs-thumb lg" data-glass data-refr="6" data-bevel="9" data-zoom="1.3" data-disp="0.3"></div></div>
+        <h4 id="lb-bri">Brilho</h4>
+        <div class="gslider" id="bri" role="slider" tabindex="0" aria-labelledby="lb-bri" aria-valuemin="0" aria-valuemax="100" aria-valuenow="35"><div class="gs-track"><div class="gs-fill"></div></div><div class="gs-thumb lg" data-glass data-refr="6" data-bevel="9" data-zoom="1.3" data-disp="0.3"></div></div>
+      </div>
+      <div class="tile wide"><div class="tile-bg lg" data-glass data-refr="9" data-bevel="16"></div>
+        <h4>Período</h4>
+        <div class="seg" id="seg" role="tablist" aria-label="Período">
+          <div class="seg-bg lg" data-glass data-refr="8" data-bevel="10"></div>
+          <div class="seg-fill"></div>
+          <button type="button" role="tab" aria-selected="false">Dia</button>
+          <button type="button" role="tab" aria-selected="true">Semana</button>
+          <button type="button" role="tab" aria-selected="false">Mês</button>
+          <button type="button" role="tab" aria-selected="false">Ano</button>
+          <div class="seg-lens lg" aria-hidden="true" data-glass data-refr="8" data-bevel="12" data-zoom="1.2" data-disp="0.3"></div>
+        </div>
+      </div>
+      <div class="tile wide"><div class="tile-bg lg" data-glass data-refr="9" data-bevel="16"></div>
+        <h4>Botões</h4>
+        <div class="btns">
+          <button class="gbtn lg press" type="button" data-glass data-refr="10" data-bevel="14">Vidro</button>
+          <button class="gbtn tinted lg press" type="button" data-glass data-refr="10" data-bevel="14">Proeminente</button>
+          <button class="gbtn round lg press" type="button" aria-label="Favoritar" data-glass data-refr="8" data-bevel="12"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <dl class="spec">
+    <div><dt>Técnica</dt><dd>Molas em JavaScript (posição, velocidade, esticamento) e easing linear() gerado a partir da mesma mola</dd></div>
+    <div><dt>Funciona em</dt><dd>Todos. A lente com refração aparece no Chromium; nos outros, vira vidro desfocado</dd></div>
+    <div><dt>Custo</dt><dd>Baixo. Só transform e opacity animam; o filtro fica fixo</dd></div>
+  </dl>
+</section>
+
+<section id="anatomia">
+  <div class="sec-head">
+    <div><p class="eyebrow">CSS · camada por camada</p><h2>Anatomia de uma camada de vidro</h2></div>
+    <p class="lead">Desligue cada ingrediente e veja o que ele faz. O CSS ao lado acompanha as caixas marcadas, pronto para copiar.</p>
+  </div>
+  <div class="ana">
+    <div class="ana-stage">
+      <p class="bignum" aria-hidden="true">n=1,52</p>
+      <div class="ana-card lg" id="ana-card" data-glass data-refr="26" data-bevel="34" data-disp="0.35"><b>Vidro</b><small>backdrop-filter · 6 camadas</small></div>
+    </div>
+    <div style="min-width:0">
+      <fieldset class="layers" id="layers">
+        <legend class="sr-only">Camadas do vidro</legend>
+        <label><input type="checkbox" id="a-blur" checked><span><b>Desfoque</b><span>blur() suaviza o fundo. O Liquid Glass usa pouco: quem dá a leitura de vidro é a refração.</span></span></label>
+        <label><input type="checkbox" id="a-refr" checked><span><b>Refração</b><span>Mapa de deslocamento em SVG que dobra o fundo no bisel. Só aparece no Chrome e no Edge.</span></span></label>
+        <label><input type="checkbox" id="a-sat" checked><span><b>Saturação</b><span>saturate() devolve a cor que o desfoque e o tom tiram do fundo.</span></span></label>
+        <label><input type="checkbox" id="a-tint" checked><span><b>Tom</b><span>Um véu branco de 12% separa o vidro do que está atrás.</span></span></label>
+        <label><input type="checkbox" id="a-rim" checked><span><b>Brilho de borda</b><span>Duas sombras internas e um contorno em gradiente imitam o reflexo especular.</span></span></label>
+        <label><input type="checkbox" id="a-shadow" checked><span><b>Sombra</b><span>Uma sombra larga e fraca descola o vidro do fundo.</span></span></label>
+      </fieldset>
+      <div class="code"><button class="copy" id="copy-css" type="button">Copiar CSS</button><pre id="ana-code"></pre></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <p><b>Liquid Glass Lab.</b> Um arquivo só, sem bibliotecas: WebGL para os palcos com fusão, SVG para refratar o DOM e CSS para o resto.</p>
+  <p>A refração sobre HTML depende de backdrop-filter com url(), que hoje só o Chromium aplica. Nos outros navegadores os mesmos elementos usam desfoque comum. Os palcos em WebGL funcionam em todos.</p>
+</footer>
+</div>
+
+<script>
+'use strict';
+/* ================= Utilidades ================= */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+const darkMQ = matchMedia('(prefers-color-scheme: dark)');
+const isDark = () => { const t = document.documentElement.dataset.theme; return t ? t === 'dark' : darkMQ.matches; };
+const hex3 = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+const fmt = (n, d = 0) => n.toFixed(d).replace('.', ',');
+
+class Spring {
+  constructor(x, k = 220, c = 22) { this.x = x; this.t = x; this.v = 0; this.k = k; this.c = c; }
+  step(dt) { const a = this.k * (this.t - this.x) - this.c * this.v; this.v += a * dt; this.x += this.v * dt; }
+  set(x) { this.x = this.t = x; this.v = 0; }
+  get idle() { return Math.abs(this.t - this.x) < 0.01 && Math.abs(this.v) < 0.01; }
+}
+// Integra várias molas com subpassos fixos (estável mesmo com quedas de frame)
+function stepSprings(list, dt) {
+  const n = Math.ceil(dt / (1 / 240));
+  const h = dt / n;
+  for (let i = 0; i < n; i++) for (const s of list) s.step(h);
+}
+
+/* Laço de animação único: só anima palcos visíveis */
+const ticks = [];
+function addTick(el, fn) {
+  const t = { fn, visible: false };
+  ticks.push(t);
+  new IntersectionObserver(es => { t.visible = es[es.length - 1].isIntersecting; }, { rootMargin: '120px' }).observe(el);
+  return t;
+}
+(function loop() {
+  let last = performance.now();
+  const frame = now => {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (!document.hidden) for (const t of ticks) if (t.visible) { try { t.fn(dt, now / 1000); } catch (e) { console.error(e); t.visible = false; } }
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+})();
+
+/* ================= Shaders ================= */
+const LG_VS = 'attribute vec2 a;varying vec2 v;void main(){v=a*.5+.5;gl_Position=vec4(a,0.,1.);}';
+const LG_PREC = '#ifdef GL_FRAGMENT_PRECISION_HIGH\nprecision highp float;\n#else\nprecision mediump float;\n#endif\n';
+
+// Passo 1: cena = gradiente animado + textura de conteúdo (pré-multiplicada, com rolagem vertical em laço)
+const LG_SCENE = LG_PREC + `
+varying vec2 v;
+uniform sampler2D uContent;
+uniform vec2 uRes;
+uniform float uTime, uScroll, uCScale, uMix;
+uniform vec3 uBg;
+uniform vec3 uC[5];
+float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+void main(){
+  float asp = uRes.x / uRes.y;
+  vec2 q = vec2(v.x * asp, 1.0 - v.y);
+  float t = uTime * 0.11;
+  vec3 col = uBg;
+  for (int i = 0; i < 5; i++){
+    float fi = float(i);
+    vec2 c = vec2((0.12 + 0.76 * fract(fi * 0.618 + 0.11)) * asp + 0.16 * asp * sin(t * (0.8 + 0.17 * fi) + fi * 1.9),
+                  0.15 + 0.7 * fract(fi * 0.381 + 0.27) + 0.2 * cos(t * (0.9 + 0.13 * fi) + fi * 2.7));
+    float r = 0.36 + 0.1 * sin(t * 0.6 + fi * 1.3);
+    float dd = length(q - c);
+    col = mix(col, uC[i], exp(-dd * dd / (r * r)) * uMix);
+  }
+  float cy = fract((1.0 - v.y) / uCScale + uScroll);
+  vec4 c = texture2D(uContent, vec2(v.x, 1.0 - cy));
+  col = col * (1.0 - c.a) + c.rgb;
+  col += (hash(gl_FragCoord.xy + fract(uTime * 7.0)) - 0.5) * (1.5 / 255.0);
+  gl_FragColor = vec4(col, 1.0);
+}`;
+
+// Passos 2 e 3: desfoque gaussiano separável em meia resolução
+const LG_BLUR = LG_PREC + `
+varying vec2 v;
+uniform sampler2D uTex;
+uniform vec2 uDir;
+uniform float uSigma;
+void main(){
+  vec4 s = vec4(0.0); float ws = 0.0;
+  float st = max(1.0, uSigma * 3.0 / 12.0);
+  for (int i = -12; i <= 12; i++){
+    float x = float(i) * st;
+    float w = exp(-0.5 * x * x / (uSigma * uSigma));
+    s += texture2D(uTex, v + uDir * x) * w; ws += w;
+  }
+  gl_FragColor = s / ws;
+}`;
+
+// Passo 4: o vidro. Formas = retângulos arredondados unidos por smin (fusão líquida).
+const LG_GLASS = LG_PREC + `
+#define MAXS 8
+varying vec2 v;
+uniform sampler2D uScene, uBlur;
+uniform vec2 uRes;
+uniform float uDpr;
+uniform int uCount;
+uniform vec4 uShape[MAXS];   // centro x, centro y, meia largura, meia altura (px CSS)
+uniform vec2 uShape2[MAXS];  // raio do canto, zoom
+uniform float uK, uRefr, uBevel, uDisp, uFrostMix, uSpec, uSat, uShadow;
+uniform vec2 uLight;
+uniform vec4 uTint, uGlow;
+float sdBox(vec2 p, vec2 b, float r){
+  r = min(r, min(b.x, b.y));
+  vec2 q = abs(p) - b + r;
+  return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
+}
+float smin(float a, float b, float k){
+  float h = max(k - abs(a - b), 0.0) / k;
+  return min(a, b) - h * h * k * 0.25;
+}
+float field(vec2 p){
+  float d = 1e5;
+  for (int i = 0; i < MAXS; i++){
+    if (i >= uCount) break;
+    float di = sdBox(p - uShape[i].xy, uShape[i].zw, uShape2[i].x);
+    d = uK > 0.5 ? smin(d, di, uK) : min(d, di);
+  }
+  return d;
+}
+vec2 lens(vec2 p){
+  vec2 acc = vec2(0.0); float ws = 0.0;
+  for (int i = 0; i < MAXS; i++){
+    if (i >= uCount) break;
+    float di = sdBox(p - uShape[i].xy, uShape[i].zw, uShape2[i].x);
+    float w = exp(-clamp(di, -40.0, 120.0) * 0.08);
+    acc += w * (uShape[i].xy - p) * (1.0 - 1.0 / uShape2[i].y);
+    ws += w;
+  }
+  return acc / max(ws, 1e-4);
+}
+// a dispersão age só no bisel; a ampliação da lupa é igual nos três canais
+vec3 tap(sampler2D t, vec2 uv, vec2 o, vec2 z, vec2 k){
+  return vec3(texture2D(t, uv + (o * (1.0 + uDisp) + z) * k).r,
+              texture2D(t, uv + (o + z) * k).g,
+              texture2D(t, uv + (o * (1.0 - uDisp) + z) * k).b);
+}
+void main(){
+  vec2 fc = gl_FragCoord.xy;
+  vec2 uv = fc / uRes;
+  vec2 p = vec2(fc.x, uRes.y - fc.y) / uDpr;
+  vec3 bg = texture2D(uScene, uv).rgb;
+  float d = field(p);
+  float aa = 1.0 / uDpr;
+  float sh = 0.0;
+  if (uShadow > 0.0 && d < 40.0){
+    float ds = field(p - vec2(0.0, 8.0));
+    sh = uShadow * (1.0 - smoothstep(-10.0, 30.0, ds));
+  }
+  vec3 outside = bg * (1.0 - sh);
+  if (d > aa){ gl_FragColor = vec4(outside, 1.0); return; }
+  vec2 e = vec2(0.5, 0.0);
+  vec2 g = vec2(field(p + e.xy) - field(p - e.xy), field(p + e.yx) - field(p - e.yx));
+  float gm = length(g);
+  g = gm > 1e-5 ? g / gm : vec2(0.0);
+  float x = max(-d, 0.0);
+  float s = 1.0 - clamp(x / max(uBevel, 1.0), 0.0, 1.0);
+  // bisel convexo: a amostra do fundo é puxada para dentro, mais forte junto da borda
+  vec2 off = -g * uRefr * s * s;
+  vec2 zo = lens(p);
+  vec2 k = vec2(uDpr / uRes.x, -uDpr / uRes.y);
+  vec3 col = tap(uScene, uv, off, zo, k);
+  if (uFrostMix > 0.0) col = mix(col, tap(uBlur, uv, off, zo, k), uFrostMix);
+  float l = dot(col, vec3(0.2126, 0.7152, 0.0722));
+  col = mix(vec3(l), col, uSat);
+  col = mix(col, uTint.rgb, uTint.a);
+  // luz: filete na borda + brilho no bisel, nos dois lados do eixo da luz
+  float f = dot(g, uLight);
+  float lit = max(f, 0.0), back = max(-f, 0.0);
+  float rim = 1.0 - smoothstep(0.0, 1.6, x);
+  col += uSpec * rim * (0.18 + 0.75 * pow(lit, 1.5) + 0.38 * pow(back, 1.5));
+  col += uSpec * s * s * s * (0.22 * lit * lit + 0.08 * back * back);
+  col = mix(col, vec3(1.0), uSpec * 0.07 * pow(s, 4.0));
+  if (uGlow.z > 0.001){
+    float gd = length(p - uGlow.xy);
+    col += uGlow.z * 0.28 * exp(-gd * gd / (2.0 * uGlow.w * uGlow.w));
+  }
+  float m = clamp(0.5 - d / aa, 0.0, 1.0);
+  gl_FragColor = vec4(mix(outside, col, m), 1.0);
+}`;
+
+const GLASS_DEFAULTS = { refr: 24, bevel: 30, disp: 0.08, frost: 0, spec: 0.85, merge: 44, zoom: 1.3, light: 135, shadow: 0.3, tint: 6, sat: 1.25 };
+const PALETTES = {
+  dark: { bg: '#07080f', c: ['#3d5afe', '#ff2d6f', '#00b8d4', '#7c4dff', '#ff9100'], mix: 0.9 },
+  light: { bg: '#eef1f8', c: ['#7aa2ff', '#ff8fb1', '#5fe0f0', '#b69cff', '#ffc46b'], mix: 0.85 },
+};
+
+/* ================= Palco WebGL ================= */
+class GlassStage {
+  constructor(canvas, cfg) {
+    this.canvas = canvas; this.cfg = cfg;
+    const o = { antialias: false, alpha: false, depth: false, stencil: false, premultipliedAlpha: false, preserveDrawingBuffer: false };
+    const gl = canvas.getContext('webgl2', o) || canvas.getContext('webgl', o) || canvas.getContext('experimental-webgl', o);
+    if (!gl) throw new Error('WebGL indisponível');
+    this.gl = gl;
+    this.pScene = this.prog(LG_SCENE); this.pBlur = this.prog(LG_BLUR); this.pGlass = this.prog(LG_GLASS);
+    const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    this.content = this.tex();
+    this.c2d = document.createElement('canvas');
+    this.p = Object.assign({}, GLASS_DEFAULTS, cfg.params || {});
+    this.shapes = []; this.scale = 1; this.w = 0; this.h = 0; this.dpr = 1; this.time = 0; this.scroll = 0; this.cScale = 1;
+    this.glow = { x: 0, y: 0, s: new Spring(0, 160, 24), r: 70 };
+    this.ua = new Float32Array(32); this.ub = new Float32Array(16);
+    this.setPalette();
+  }
+  prog(fs) {
+    const gl = this.gl;
+    const sh = (type, src) => {
+      const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+      return s;
+    };
+    const p = gl.createProgram();
+    gl.attachShader(p, sh(gl.VERTEX_SHADER, LG_VS)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs));
+    gl.bindAttribLocation(p, 0, 'a'); gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+    const u = {};
+    for (let i = 0, n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS); i < n; i++) {
+      const info = gl.getActiveUniform(p, i);
+      u[info.name.replace(/\[0\]$/, '')] = gl.getUniformLocation(p, info.name);
+    }
+    return { p, u };
+  }
+  tex() {
+    const gl = this.gl, t = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    return t;
+  }
+  target(w, h, old) {
+    const gl = this.gl;
+    if (old) { gl.deleteTexture(old.t); gl.deleteFramebuffer(old.f); }
+    const t = this.tex();
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    const f = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, f);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    return { t, f, w, h };
+  }
+  setPalette() {
+    const pal = PALETTES[isDark() ? 'dark' : 'light'];
+    this.pal = { bg: new Float32Array(hex3(pal.bg)), c: new Float32Array(pal.c.flatMap(hex3)), mix: pal.mix };
+  }
+  resize() {
+    const r = this.canvas.getBoundingClientRect();
+    const w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height));
+    const max = this.gl.getParameter(this.gl.MAX_TEXTURE_SIZE);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2, max / w, max / (h * 2.5));
+    if (w === this.w && h === this.h && dpr === this.dpr) return false;
+    const ow = this.w, oh = this.h;
+    this.w = w; this.h = h; this.dpr = dpr;
+    const W = Math.round(w * dpr), H = Math.round(h * dpr);
+    this.canvas.width = W; this.canvas.height = H;
+    this.rtScene = this.target(W, H, this.rtScene);
+    this.rtA = this.target(Math.max(1, W >> 1), Math.max(1, H >> 1), this.rtA);
+    this.rtB = this.target(Math.max(1, W >> 1), Math.max(1, H >> 1), this.rtB);
+    if (this.cfg.onResize) this.cfg.onResize(w, h, ow, oh);
+    this.redraw();
+    return true;
+  }
+  redraw() {
+    if (!this.w) return;
+    this.setPalette();
+    const ch = this.cfg.draw(this.c2d, this.w, this.h, this.dpr, isDark(), this) || this.h;
+    this.cScale = ch / this.h;
+    const gl = this.gl;
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.content);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.c2d);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+  }
+  render(dt) {
+    const gl = this.gl, p = this.p, W = this.canvas.width, H = this.canvas.height;
+    if (!reduceMotion.matches) this.time += dt;
+    const draw = () => gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    // 1. cena
+    let P = this.pScene;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.rtScene.f); gl.viewport(0, 0, W, H);
+    gl.useProgram(P.p);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.content);
+    gl.uniform1i(P.u.uContent, 0); gl.uniform2f(P.u.uRes, W, H);
+    gl.uniform1f(P.u.uTime, this.time); gl.uniform1f(P.u.uScroll, this.scroll); gl.uniform1f(P.u.uCScale, this.cScale);
+    gl.uniform3fv(P.u.uBg, this.pal.bg); gl.uniform3fv(P.u.uC, this.pal.c); gl.uniform1f(P.u.uMix, this.pal.mix);
+    draw();
+    // 2-3. desfoque (só quando há fosco)
+    const fm = p.frost > 0 ? clamp(p.frost / 3, 0, 1) : 0;
+    if (fm > 0) {
+      P = this.pBlur; gl.useProgram(P.p);
+      gl.uniform1i(P.u.uTex, 0); gl.uniform1f(P.u.uSigma, Math.max(p.frost, 1.5) * this.dpr / 2);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.rtA.f); gl.viewport(0, 0, this.rtA.w, this.rtA.h);
+      gl.bindTexture(gl.TEXTURE_2D, this.rtScene.t); gl.uniform2f(P.u.uDir, 1 / this.rtA.w, 0); draw();
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.rtB.f);
+      gl.bindTexture(gl.TEXTURE_2D, this.rtA.t); gl.uniform2f(P.u.uDir, 0, 1 / this.rtB.h); draw();
+    }
+    // 4. vidro
+    P = this.pGlass;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, W, H);
+    gl.useProgram(P.p);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.rtScene.t);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, this.rtB.t);
+    gl.uniform1i(P.u.uScene, 0); gl.uniform1i(P.u.uBlur, 1);
+    const n = Math.min(this.shapes.length, 8), a = this.ua, b = this.ub;
+    for (let i = 0; i < n; i++) {
+      const s = this.shapes[i];
+      a[i * 4] = s.cx; a[i * 4 + 1] = s.cy; a[i * 4 + 2] = Math.max(s.hw, 0.5); a[i * 4 + 3] = Math.max(s.hh, 0.5);
+      b[i * 2] = s.r; b[i * 2 + 1] = s.zoom || 1;
+    }
+    gl.uniform1i(P.u.uCount, n); gl.uniform4fv(P.u.uShape, a); gl.uniform2fv(P.u.uShape2, b);
+    gl.uniform2f(P.u.uRes, W, H); gl.uniform1f(P.u.uDpr, this.dpr);
+    const sc = this.scale;
+    gl.uniform1f(P.u.uK, p.merge * sc); gl.uniform1f(P.u.uRefr, p.refr * sc); gl.uniform1f(P.u.uBevel, p.bevel * sc);
+    gl.uniform1f(P.u.uDisp, p.disp); gl.uniform1f(P.u.uFrostMix, fm); gl.uniform1f(P.u.uSpec, p.spec);
+    gl.uniform1f(P.u.uSat, p.sat); gl.uniform1f(P.u.uShadow, p.shadow);
+    const la = p.light * Math.PI / 180;
+    gl.uniform2f(P.u.uLight, Math.cos(la), -Math.sin(la));
+    const tn = p.tint / 100;
+    if (tn >= 0) gl.uniform4f(P.u.uTint, 1, 1, 1, tn * 0.5); else gl.uniform4f(P.u.uTint, 0.02, 0.02, 0.05, -tn);
+    this.glow.s.step(dt);
+    gl.uniform4f(P.u.uGlow, this.glow.x, this.glow.y, Math.max(0, this.glow.s.x), this.glow.r);
+    draw();
+    gl.bindTexture(gl.TEXTURE_2D, null); gl.activeTexture(gl.TEXTURE0);
+  }
+}
+
+/* ================= Fundos desenhados em canvas 2D ================= */
+function ctx2d(cv, w, h, dpr) {
+  cv.width = Math.max(1, Math.round(w * dpr)); cv.height = Math.max(1, Math.round(h * dpr));
+  const c = cv.getContext('2d');
+  c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, w, h);
+  c.textBaseline = 'alphabetic'; c.textAlign = 'left';
+  return c;
+}
+function spacing(c, px) { try { c.letterSpacing = px + 'px'; } catch (e) { /* sem suporte */ } }
+function wrapLines(c, text, maxW) {
+  const out = []; let line = '';
+  for (const word of text.split(' ')) {
+    const t = line ? line + ' ' + word : word;
+    if (c.measureText(t).width > maxW && line) { out.push(line); line = word; } else line = t;
+  }
+  if (line) out.push(line);
+  return out;
+}
+function rrect(c, x, y, w, h, r) { c.beginPath(); c.roundRect ? c.roundRect(x, y, w, h, r) : c.rect(x, y, w, h); }
+
+const ARTICLE = [
+  'Quando a luz passa do ar para o vidro, ela desacelera e muda de direção. A lei de Snell descreve essa curva: n₁ · sen θ₁ = n₂ · sen θ₂.',
+  'Num bloco de vidro com bordas arredondadas, o centro é plano e deixa a imagem passar quase intacta. No bisel a superfície inclina e os raios são puxados para dentro.',
+  'O índice muda com a cor. O vermelho curva menos que o azul; essa diferença é a dispersão, medida pelo número de Abbe: cerca de 64 no vidro crown e 36 no flint.',
+  'Duas gotas próximas se juntam porque a tensão superficial busca a menor área possível. No shader, a função smin faz o mesmo papel entre duas formas.',
+  'O reflexo na borda depende do ângulo: quanto mais rasante a visão, mais luz o vidro reflete em vez de deixar passar. É o efeito Fresnel.',
+];
+
+const SCENES = {
+  titulo(cv, w, h, dpr, dark, st) {
+    const c = ctx2d(cv, w, h, dpr);
+    const fg = dark ? '255,255,255' : '16,18,28';
+    const step = 44;
+    c.strokeStyle = `rgba(${fg},${dark ? 0.09 : 0.11})`; c.lineWidth = 1; c.beginPath();
+    for (let x = (w % step) / 2; x < w; x += step) { c.moveTo(Math.round(x) + 0.5, 0); c.lineTo(Math.round(x) + 0.5, h); }
+    for (let y = (h % step) / 2; y < h; y += step) { c.moveTo(0, Math.round(y) + 0.5); c.lineTo(w, Math.round(y) + 0.5); }
+    c.stroke();
+    const reserve = st && st.reserve ? st.reserve() : 0;
+    const aw = w - reserve;
+    const x0 = Math.max(20, aw * 0.06);
+    const two = aw < 760;
+    const words = two ? ['Liquid', 'Glass'] : ['Liquid Glass'];
+    c.font = '800 100px "Bricolage Grotesque", system-ui, sans-serif'; spacing(c, -4);
+    const widest = Math.max(...words.map(t => c.measureText(t).width));
+    let size = 100 * (aw - x0 * 2) / widest;
+    size = Math.min(size, two ? h * 0.26 : h * 0.3);
+    c.font = `800 ${size}px "Bricolage Grotesque", system-ui, sans-serif`; spacing(c, -size * 0.04);
+    c.fillStyle = `rgb(${fg})`;
+    const lh = size * 0.9;
+    const top = h * 0.5 - (words.length * lh) / 2 + size * 0.72;
+    words.forEach((t, i) => c.fillText(t, x0, top + i * lh));
+    const base = top + (words.length - 1) * lh;
+    st && (st.meta = { x0, size, base, aw });
+    spacing(c, 0);
+    c.font = `500 ${aw < 520 ? 15 : 19}px "Geist", system-ui, sans-serif`;
+    c.fillStyle = `rgba(${fg},.78)`;
+    const sub = 'Refração, dispersão e fusão, em tempo real no navegador.';
+    wrapLines(c, sub, aw - x0 * 2).forEach((t, i) => c.fillText(t, x0 + 4, base + size * 0.36 + 8 + i * 24));
+    c.font = '500 11px "Geist Mono", ui-monospace, monospace'; spacing(c, 1.2);
+    c.fillStyle = `rgba(${fg},.55)`;
+    c.fillText('N = 1,52  ·  ABBE 64  ·  iOS 26', x0 + 4, h - 26);
+    if (aw > 620) { c.textAlign = 'right'; c.fillText('SDF  ·  SMIN  ·  FRESNEL', aw - x0, h - 26); }
+    const dots = ['#ff375f', '#ff9f0a', '#30d158', '#0a84ff', '#bf5af2'];
+    dots.forEach((col, i) => { c.fillStyle = col; c.beginPath(); c.arc(x0 + 10 + i * 22, h - 56, 6, 0, 7); c.fill(); });
+  },
+  listras(cv, w, h, dpr, dark) {
+    const c = ctx2d(cv, w, h, dpr);
+    const bg = dark ? '#0c0e18' : '#f6f2ea';
+    c.fillStyle = bg; c.fillRect(0, 0, w, h);
+    const cols = ['#ff3b5c', '#ffb020', '#2ad17f', '#1fa2ff', '#7b5cff'];
+    c.save(); c.translate(w / 2, h / 2); c.rotate(-Math.PI / 4);
+    const L = Math.hypot(w, h), bw = 22;
+    for (let i = Math.floor(-L / bw / 2); i < L / bw / 2; i++) {
+      if (i % 2 === 0) continue;
+      c.fillStyle = cols[((i % 5) + 5) % 5]; c.fillRect(i * bw, -L / 2, bw, L);
+    }
+    c.restore();
+    const cs = 18, bandY = Math.round(h * 0.62);
+    for (let x = 0; x < w; x += cs) for (let k = 0; k < 4; k++) {
+      c.fillStyle = ((x / cs + k) % 2) ? bg : (dark ? '#fff' : '#111');
+      c.fillRect(x, bandY + k * cs, cs, cs);
+    }
+    c.lineWidth = 6;
+    for (let r = 20; r < 170; r += 18) { c.strokeStyle = r % 36 ? (dark ? '#fff' : '#111') : '#ff3b5c'; c.beginPath(); c.arc(w * 0.22, h * 0.3, r, 0, 7); c.stroke(); }
+  },
+  texto(cv, w, h, dpr, dark) {
+    const c = ctx2d(cv, w, h, dpr);
+    c.fillStyle = dark ? '#101218' : '#fbfaf6'; c.fillRect(0, 0, w, h);
+    const ink = dark ? '#e9ebf2' : '#16171c', dim = dark ? '#9aa1b4' : '#5c606c';
+    const pad = Math.max(20, w * 0.05);
+    c.fillStyle = ink; c.font = `800 ${Math.min(64, w * 0.08)}px "Bricolage Grotesque", system-ui, sans-serif`; spacing(c, -1.5);
+    c.fillText('A física do vidro líquido', pad, pad + 48);
+    spacing(c, 0);
+    c.fillStyle = '#e8432f'; c.fillRect(pad, pad + 70, 64, 4);
+    const cols = Math.max(1, Math.floor((w - pad * 2) / 300)), gap = 28;
+    const cw = (w - pad * 2 - gap * (cols - 1)) / cols;
+    c.font = '400 15.5px "Geist", system-ui, sans-serif';
+    let col = 0, y = pad + 110;
+    let i = 0;
+    while (col < cols) {
+      const para = ARTICLE[i % ARTICLE.length]; i++;
+      const lines = wrapLines(c, para, cw);
+      for (const ln of lines) {
+        if (y > h - 20) { col++; y = pad + 110; if (col >= cols) break; }
+        c.fillStyle = ink; c.fillText(ln, pad + col * (cw + gap), y); y += 23;
+      }
+      y += 12;
+      if (i > 60) break;
+    }
+    c.fillStyle = dim; c.font = '500 11px "Geist Mono", ui-monospace, monospace'; spacing(c, 1);
+    c.fillText('ÓPTICA · PÁGINA 26', pad, h - 12);
+  },
+  paisagem(cv, w, h, dpr, dark) {
+    const c = ctx2d(cv, w, h, dpr);
+    const sky = c.createLinearGradient(0, 0, 0, h * 0.7);
+    if (dark) { sky.addColorStop(0, '#0b1033'); sky.addColorStop(0.55, '#5a2a7a'); sky.addColorStop(1, '#ff7a45'); }
+    else { sky.addColorStop(0, '#5fb3ff'); sky.addColorStop(0.6, '#ffc3a0'); sky.addColorStop(1, '#ffe0b0'); }
+    c.fillStyle = sky; c.fillRect(0, 0, w, h);
+    const sx = w * 0.68, sy = h * 0.5;
+    const glow = c.createRadialGradient(sx, sy, 0, sx, sy, h * 0.5);
+    glow.addColorStop(0, 'rgba(255,220,150,.9)'); glow.addColorStop(1, 'rgba(255,220,150,0)');
+    c.fillStyle = glow; c.fillRect(0, 0, w, h);
+    c.fillStyle = '#fff3d6'; c.beginPath(); c.arc(sx, sy, Math.min(w, h) * 0.08, 0, 7); c.fill();
+    const layers = dark ? ['#3b2a63', '#2a1f4d', '#1b1538', '#0f0c24'] : ['#b9a3d9', '#8f7bc2', '#5f4f9a', '#3a2f6e'];
+    layers.forEach((col, k) => {
+      const base = h * (0.52 + k * 0.07);
+      c.fillStyle = col; c.beginPath(); c.moveTo(0, h);
+      for (let x = 0; x <= w + 8; x += 8) {
+        const y = base - (Math.sin(x * 0.006 + k * 2.1) * 40 + Math.sin(x * 0.017 + k) * 18 + Math.sin(x * 0.041 + k * 3) * 6) * (1 - k * 0.12);
+        c.lineTo(x, y);
+      }
+      c.lineTo(w, h); c.closePath(); c.fill();
+    });
+    const lakeY = h * 0.8;
+    c.fillStyle = dark ? '#0d0a20' : '#2f2763'; c.fillRect(0, lakeY, w, h - lakeY);
+    for (let y = lakeY + 4, i = 0; y < h; y += 7, i++) {
+      const half = (w * 0.05 + i * 3) * (0.6 + 0.4 * Math.sin(i * 1.7));
+      c.fillStyle = `rgba(255,214,150,${0.75 - i * 0.03})`; c.fillRect(sx - half, y, half * 2, 2.5);
+    }
+  },
+  galeria(cv, w, h, dpr, dark) {
+    const pad = 14, gap = 14, cols = w < 520 ? 2 : w < 860 ? 3 : 4;
+    const tw = (w - pad * 2 - gap * (cols - 1)) / cols, th = tw + 40, pitch = th + gap;
+    const rows = Math.ceil(h / pitch) + 1, H = rows * pitch;
+    const c = ctx2d(cv, w, H, dpr);
+    c.fillStyle = dark ? '#0b0c11' : '#f2f3f7'; c.fillRect(0, 0, w, H);
+    const pairs = [['#ff5f6d', '#ffc371'], ['#4facfe', '#00f2fe'], ['#7f00ff', '#e100ff'], ['#11998e', '#38ef7d'], ['#232526', '#606c88'], ['#f83600', '#f9d423'], ['#fc466b', '#3f5efb'], ['#00c6ff', '#0072ff'], ['#f7971e', '#ffd200'], ['#8e2de2', '#4a00e0']];
+    const names = ['Maré Alta', 'Vidro Azul', 'Neon 84', 'Cítrico', 'Lua Cheia', 'Areia Quente', 'Prisma', 'Cobalto', 'Sol de Meio-dia', 'Aurora', 'Ondas', 'Noturno'];
+    const artists = ['Lagoa Azul', 'Cobalto', 'Os Prismas', 'Sal & Sol', 'Noturno', 'Duna'];
+    let i = 0;
+    for (let r = 0; r < rows; r++) for (let k = 0; k < cols; k++, i++) {
+      const x = pad + k * (tw + gap), y = r * pitch + gap / 2;
+      const [a, b] = pairs[(i * 7) % pairs.length];
+      const g = c.createLinearGradient(x, y, x + tw, y + tw); g.addColorStop(0, a); g.addColorStop(1, b);
+      c.save(); rrect(c, x, y, tw, tw, 14); c.fillStyle = g; c.fill(); c.clip();
+      c.fillStyle = 'rgba(255,255,255,.3)'; c.strokeStyle = 'rgba(255,255,255,.35)'; c.lineWidth = 5;
+      switch (i % 5) {
+        case 0: c.beginPath(); c.arc(x + tw * 0.68, y + tw * 0.32, tw * 0.16, 0, 7); c.fillStyle = 'rgba(255,255,255,.75)'; c.fill(); break;
+        case 1: for (let s = 0; s < tw; s += 16) c.fillRect(x, y + s, tw, 6); break;
+        case 2: for (let s = tw * 0.1; s < tw * 0.6; s += 14) { c.beginPath(); c.arc(x + tw / 2, y + tw / 2, s, 0, 7); c.stroke(); } break;
+        case 3: c.beginPath(); c.moveTo(x, y + tw); c.lineTo(x + tw * 0.4, y + tw * 0.45); c.lineTo(x + tw * 0.7, y + tw * 0.75); c.lineTo(x + tw, y + tw * 0.5); c.lineTo(x + tw, y + tw); c.fill(); break;
+        default: for (let yy = 12; yy < tw; yy += 18) for (let xx = 12; xx < tw; xx += 18) { c.beginPath(); c.arc(x + xx, y + yy, 3, 0, 7); c.fill(); }
+      }
+      c.restore();
+      c.fillStyle = dark ? '#f1f2f6' : '#14151a'; c.font = '600 13.5px "Geist", system-ui, sans-serif';
+      c.fillText(names[i % names.length], x + 2, y + tw + 19);
+      c.fillStyle = dark ? '#8d92a0' : '#6b7080'; c.font = '400 12.5px "Geist", system-ui, sans-serif';
+      c.fillText(artists[i % artists.length], x + 2, y + tw + 35);
+    }
+    return H;
+  },
+};
+
+
+/* ================= Palco 1: herói com ajustes ================= */
+const glStages = [];
+const PRESETS = {
+  liquid: { refr: 24, bevel: 30, disp: 0.08, frost: 0, spec: 0.85, merge: 44, zoom: 1.3, shadow: 0.3, tint: 6, sat: 1.25 },
+  gota: { refr: 46, bevel: 70, disp: 0.2, frost: 0, spec: 1, merge: 96, zoom: 1.6, shadow: 0.45, tint: 0, sat: 1.35 },
+  fosco: { refr: 14, bevel: 22, disp: 0.04, frost: 12, spec: 0.7, merge: 40, zoom: 1, shadow: 0.25, tint: 24, sat: 1.5 },
+  cristal: { refr: 34, bevel: 16, disp: 0.5, frost: 0, spec: 1, merge: 20, zoom: 1.15, shadow: 0.2, tint: 0, sat: 1.1 },
+  escuro: { refr: 22, bevel: 28, disp: 0.06, frost: 4, spec: 0.6, merge: 44, zoom: 1.2, shadow: 0.45, tint: -40, sat: 1.1 },
+};
+const CTRL = [
+  ['refr', 1, v => `${Math.round(v)} px`],
+  ['bevel', 1, v => `${Math.round(v)} px`],
+  ['disp', 100, v => `${Math.round(v * 100)}%`],
+  ['frost', 1, v => `${fmt(v, 1)} px`],
+  ['spec', 100, v => `${Math.round(v * 100)}%`],
+  ['merge', 1, v => `${Math.round(v)} px`],
+  ['zoom', 100, v => `${fmt(v, 2)}×`],
+  ['light', 1, v => `${Math.round(v)}°`],
+  ['shadow', 100, v => `${Math.round(v * 100)}%`],
+  ['tint', 1, v => v === 0 ? 'neutro' : v > 0 ? `claro ${v}` : `escuro ${-v}`],
+];
+
+function initHero() {
+  const canvas = $('#hero-gl'), stageEl = $('#hero-stage'), handlesEl = $('#hero-handles'), tuner = $('#tuner');
+  const wideMQ = matchMedia('(min-width: 901px)');
+  let sceneName = 'titulo', k = 1;
+  const DEFS = [
+    { w: 300, h: 116, fx: 0.33, fy: 0.5, label: '', name: 'Pílula de vidro' },
+    { w: 150, h: 150, fx: 0.72, fy: 0.34, lens: true, label: '', name: 'Lente de aumento' },
+    { w: 150, h: 64, fx: 0.58, fy: 0.76, label: '', name: 'Gota pequena' },
+  ];
+  const shapes = DEFS.map((d, i) => ({ d, i, x: new Spring(0, 190, 19), y: new Spring(0, 190, 19), sc: new Spring(1, 320, 17), hx: 0, hy: 0, ph: i * 2.1, drag: null, el: null }));
+  const springs = shapes.flatMap(s => [s.x, s.y, s.sc]);
+  const st = new GlassStage(canvas, {
+    draw: (cv, w, h, dpr, dark, s) => SCENES[sceneName](cv, w, h, dpr, dark, s),
+    onResize(w, h, ow, oh) {
+      k = clamp(w / 1100, 0.58, 1);
+      st.scale = k;
+      const aw = w - st.reserve();
+      for (const s of shapes) {
+        if (!ow) { s.hx = s.d.fx * aw; s.hy = s.d.fy * h; }
+        else { s.hx = clamp(s.hx * w / ow, 0, w); s.hy = clamp(s.hy * h / oh, 0, h); }
+        s.x.set(s.hx); s.y.set(s.hy);
+        s.el.style.width = s.d.w * k + 'px'; s.el.style.height = s.d.h * k + 'px';
+      }
+    },
+  });
+  st.reserve = () => (wideMQ.matches && !tuner.classList.contains('collapsed')) ? tuner.offsetWidth + 32 : 0;
+  glStages.push(st);
+
+  const local = e => { const r = stageEl.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  for (const s of shapes) {
+    const el = document.createElement('div');
+    el.className = 'handle'; el.tabIndex = 0; el.setAttribute('role', 'img');
+    el.setAttribute('aria-label', `${s.d.name}. Arraste ou use as setas para mover.`);
+    el.textContent = s.d.label;
+    handlesEl.appendChild(el); s.el = el;
+    el.addEventListener('pointerdown', e => {
+      el.setPointerCapture(e.pointerId);
+      const [px, py] = local(e);
+      s.drag = { ox: px - s.x.x, oy: py - s.y.x, id: e.pointerId };
+      s.sc.t = 1.08; st.glow.x = px; st.glow.y = py; st.glow.s.t = 1;
+    });
+    el.addEventListener('pointermove', e => {
+      if (!s.drag || e.pointerId !== s.drag.id) return;
+      const [px, py] = local(e);
+      s.hx = s.x.t = clamp(px - s.drag.ox, 0, st.w); s.hy = s.y.t = clamp(py - s.drag.oy, 0, st.h);
+      st.glow.x = px; st.glow.y = py;
+    });
+    const end = () => { if (!s.drag) return; s.drag = null; s.sc.t = 1; st.glow.s.t = 0; };
+    el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+    el.addEventListener('keydown', e => {
+      const step = e.shiftKey ? 48 : 16;
+      const d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
+      if (!d) return;
+      e.preventDefault();
+      s.hx = clamp(s.hx + d[0], 0, st.w); s.hy = clamp(s.hy + d[1], 0, st.h);
+    });
+  }
+
+  new ResizeObserver(() => st.resize()).observe(canvas);
+  addTick(stageEl, (dt, t) => {
+    if (!st.w) return;
+    for (const s of shapes) if (!s.drag) {
+      const amp = reduceMotion.matches ? 0 : 1;
+      s.x.t = s.hx + Math.sin(t * 0.5 + s.ph) * 14 * k * amp;
+      s.y.t = s.hy + Math.cos(t * 0.42 + s.ph * 1.3) * 10 * k * amp;
+    }
+    stepSprings(springs, dt);
+    st.shapes = shapes.map(s => {
+      const vx = Math.abs(s.x.v), vy = Math.abs(s.y.v);
+      const sx = 1 + Math.min(vx / 2600, 0.22) - Math.min(vy / 5200, 0.1);
+      const sy = 1 + Math.min(vy / 2600, 0.22) - Math.min(vx / 5200, 0.1);
+      const hw = s.d.w * k / 2 * s.sc.x * sx, hh = s.d.h * k / 2 * s.sc.x * sy;
+      s.el.style.transform = `translate(${s.x.x - s.d.w * k / 2}px,${s.y.x - s.d.h * k / 2}px) scale(${s.sc.x * sx},${s.sc.x * sy})`;
+      return { cx: s.x.x, cy: s.y.x, hw, hh, r: Math.min(hw, hh), zoom: s.d.lens ? st.p.zoom : 1 };
+    });
+    st.render(dt);
+  });
+
+  // ---- painel de ajustes ----
+  const inputs = {};
+  const sync = () => {
+    for (const [key, div, show] of CTRL) {
+      const inp = $('#g-' + key), out = $('#o-' + key);
+      inputs[key] = inp;
+      inp.value = st.p[key] * div; out.textContent = show(st.p[key]);
+    }
+  };
+  for (const [key, div, show] of CTRL) {
+    $('#g-' + key).addEventListener('input', e => {
+      st.p[key] = parseFloat(e.target.value) / div;
+      $('#o-' + key).textContent = show(st.p[key]);
+      $$('#preset-chips .chip').forEach(c => c.setAttribute('aria-pressed', 'false'));
+    });
+  }
+  $('#preset-chips').addEventListener('click', e => {
+    const b = e.target.closest('[data-preset]'); if (!b) return;
+    Object.assign(st.p, PRESETS[b.dataset.preset]); sync();
+    $$('#preset-chips .chip').forEach(c => c.setAttribute('aria-pressed', String(c === b)));
+  });
+  $('#scene-chips').addEventListener('click', e => {
+    const b = e.target.closest('[data-scene]'); if (!b) return;
+    sceneName = b.dataset.scene; st.redraw();
+    $$('#scene-chips .chip').forEach(c => c.setAttribute('aria-pressed', String(c === b)));
+  });
+  const tg = $('#tuner-toggle');
+  tg.addEventListener('click', () => {
+    const col = tuner.classList.toggle('collapsed');
+    tg.setAttribute('aria-expanded', String(!col));
+    tg.setAttribute('aria-label', col ? 'Abrir ajustes' : 'Recolher ajustes');
+    st.redraw();
+  });
+  wideMQ.addEventListener('change', () => st.redraw());
+  sync();
+}
+
+/* ================= Palco 2: fusão líquida ================= */
+function initMorph() {
+  const canvas = $('#morph-gl'), stageEl = $('#morph-stage');
+  const fabEl = $('#m-fab'), itemEls = $$('.mitem', stageEl), backEl = $('#m-back'), fwdEl = $('#m-fwd');
+  const openBtn = $('#m-open'), splitBtn = $('#m-split');
+  const st = new GlassStage(canvas, {
+    draw: (cv, w, h, dpr, dark) => SCENES.galeria(cv, w, h, dpr, dark),
+    params: { refr: 20, bevel: 24, disp: 0.1, merge: 34, spec: 0.9, shadow: 0.35, tint: 4, zoom: 1, sat: 1.3, frost: 0 },
+    onResize(w, h, ow) {
+      if (!ow) { fab.hx = w / 2; fab.hy = h - 74; fab.x.set(fab.hx); fab.y.set(fab.hy); its.forEach(it => { it.x.set(fab.hx); it.y.set(fab.hy); }); }
+      else { fab.hx = clamp(fab.hx * w / ow, 40, w - 40); fab.hy = clamp(fab.hy, 40, h - 40); }
+      bar.cx.set(w / 2);
+    },
+  });
+  glStages.push(st);
+  const FAB_R = 31, ITEM_R = 25;
+  const fab = { x: new Spring(0, 260, 24), y: new Spring(0, 260, 24), sc: new Spring(1, 320, 16), hx: 0, hy: 0 };
+  const its = itemEls.map((el, i) => ({ el, i, x: new Spring(0, 120 - i * 10, 13 - i * 0.8), y: new Spring(0, 120 - i * 10, 13 - i * 0.8), r: new Spring(FAB_R * 0.7, 200, 17) }));
+  const bar = { cx: new Spring(0, 200, 20), sep: new Spring(0, 140, 13), hw: new Spring(52, 140, 13) };
+  const springs = [fab.x, fab.y, fab.sc, bar.cx, bar.sep, bar.hw, ...its.flatMap(it => [it.x, it.y, it.r])];
+  let open = false, split = false, touched = false, autoT = 0;
+
+  const setOpen = v => {
+    open = v;
+    fabEl.setAttribute('aria-expanded', String(v)); fabEl.setAttribute('aria-label', v ? 'Fechar menu' : 'Abrir menu');
+    openBtn.textContent = v ? 'Fechar menu' : 'Abrir menu';
+    its.forEach(it => { it.el.tabIndex = v ? 0 : -1; it.el.style.pointerEvents = v ? 'auto' : 'none'; });
+  };
+  const setSplit = v => { split = v; splitBtn.textContent = v ? 'Juntar botões' : 'Separar botões'; };
+  setOpen(false); setSplit(false);
+
+  let drag = null, moved = false;
+  const local = e => { const r = stageEl.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  fabEl.addEventListener('pointerdown', e => {
+    fabEl.setPointerCapture(e.pointerId);
+    const [px, py] = local(e);
+    drag = { ox: px - fab.x.x, oy: py - fab.y.x, sx: px, sy: py, id: e.pointerId }; moved = false;
+    fab.sc.t = 1.12; st.glow.s.t = 1; st.glow.x = px; st.glow.y = py; touched = true;
+  });
+  fabEl.addEventListener('pointermove', e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const [px, py] = local(e);
+    if (Math.hypot(px - drag.sx, py - drag.sy) > 6) moved = true;
+    if (moved) { fab.hx = fab.x.t = clamp(px - drag.ox, 36, st.w - 36); fab.hy = fab.y.t = clamp(py - drag.oy, 36, st.h - 36); }
+    st.glow.x = px; st.glow.y = py;
+  });
+  const end = () => { if (!drag) return; drag = null; fab.sc.t = 1; st.glow.s.t = 0; };
+  fabEl.addEventListener('pointerup', end); fabEl.addEventListener('pointercancel', end);
+  fabEl.addEventListener('click', () => { if (moved) { moved = false; return; } touched = true; setOpen(!open); });
+  its.forEach(it => it.el.addEventListener('click', () => setOpen(false)));
+  openBtn.addEventListener('click', () => { touched = true; setOpen(!open); });
+  splitBtn.addEventListener('click', () => { touched = true; setSplit(!split); });
+  [backEl, fwdEl].forEach(b => b.addEventListener('click', () => { touched = true; setSplit(!split); }));
+
+  new ResizeObserver(() => st.resize()).observe(canvas);
+  addTick(stageEl, (dt) => {
+    if (!st.w) return;
+    const kk = clamp(st.w / 900, 0.8, 1);
+    if (!touched && !reduceMotion.matches) {
+      autoT += dt;
+      if (autoT > 2.8) { autoT = 0; setSplit(!split); }
+    }
+    if (!drag) { fab.x.t = fab.hx; fab.y.t = fab.hy; }
+    const up = fab.y.x > st.h * 0.45 ? -1 : 1;
+    const R = 112 * kk;
+    its.forEach((it, i) => {
+      if (open) {
+        const a = (165 - i * 37.5) * Math.PI / 180;
+        it.x.t = fab.x.x + Math.cos(a) * R; it.y.t = fab.y.x + up * Math.sin(a) * R; it.r.t = ITEM_R;
+      } else { it.x.t = fab.x.x; it.y.t = fab.y.x; it.r.t = FAB_R * 0.7; }
+    });
+    bar.sep.t = split ? 1 : 0; bar.hw.t = split ? 24 : 52;
+    stepSprings(springs, dt);
+    st.scroll = reduceMotion.matches ? 0 : (st.time * 16 / (st.cScale * st.h)) % 1;
+    const sh = [];
+    const fr = FAB_R * fab.sc.x;
+    sh.push({ cx: fab.x.x, cy: fab.y.x, hw: fr, hh: fr, r: fr });
+    its.forEach(it => {
+      const r = Math.max(it.r.x, 1);
+      sh.push({ cx: it.x.x, cy: it.y.x, hw: r, hh: r, r });
+      const dist = Math.hypot(it.x.x - fab.x.x, it.y.x - fab.y.x);
+      it.el.style.opacity = clamp((dist - FAB_R) / 40, 0, 1);
+      it.el.style.transform = `translate(${it.x.x - ITEM_R}px,${it.y.x - ITEM_R}px)`;
+      it.el.style.width = it.el.style.height = ITEM_R * 2 + 'px';
+    });
+    const off = 26 + bar.sep.x * 38, hw = bar.hw.x, cy = 52;
+    sh.push({ cx: bar.cx.x - off, cy, hw, hh: 24, r: 24 });
+    sh.push({ cx: bar.cx.x + off, cy, hw, hh: 24, r: 24 });
+    const bo = (hw - 24) * 0.5;
+    backEl.style.transform = `translate(${bar.cx.x - off - bo - 22}px,${cy - 22}px)`;
+    fwdEl.style.transform = `translate(${bar.cx.x + off + bo - 22}px,${cy - 22}px)`;
+    backEl.style.width = backEl.style.height = fwdEl.style.width = fwdEl.style.height = '44px';
+    fabEl.style.width = fabEl.style.height = FAB_R * 2 + 'px';
+    fabEl.style.transform = `translate(${fab.x.x - FAB_R}px,${fab.y.x - FAB_R}px) scale(${fab.sc.x})`;
+    if (drag) { st.glow.x = fab.x.x; st.glow.y = fab.y.x; }
+    st.shapes = sh;
+    st.render(dt);
+  });
+}
+
+
+/* ================= Vidro SVG sobre o DOM ================= */
+const SVGNS = 'http://www.w3.org/2000/svg';
+const SVG_OK = /Chrome\/\d+/.test(navigator.userAgent) && !/Firefox\//.test(navigator.userAgent);
+const glassEls = new Map();
+const glassQueue = new Set();
+let glassRaf = 0, filterSeq = 0;
+const domOpts = { refr: 18, bevel: 22, zoom: 1.45 };
+
+function sdRound(x, y, hw, hh, r) {
+  const qx = Math.abs(x) - hw + r, qy = Math.abs(y) - hh + r;
+  return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - r;
+}
+// Mapa de deslocamento: R = deslocamento em x, G = em y, 128 = zero.
+function buildMap(w, h, r, bevel, refr, zoom) {
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  const c = cv.getContext('2d'), img = c.createImageData(w, h), D = img.data;
+  const hw = w / 2, hh = h / 2, zk = 1 - 1 / zoom;
+  r = Math.min(r, hw, hh);
+  const vx = new Float32Array(w * h), vy = new Float32Array(w * h);
+  let max = 0.5;
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const x = i + 0.5 - hw, y = j + 0.5 - hh, d = sdRound(x, y, hw, hh, r);
+    let dx = 0, dy = 0;
+    if (d < 0) {
+      const s = 1 - Math.min(-d / bevel, 1);
+      if (s > 0) {
+        const gx = sdRound(x + 0.5, y, hw, hh, r) - sdRound(x - 0.5, y, hw, hh, r);
+        const gy = sdRound(x, y + 0.5, hw, hh, r) - sdRound(x, y - 0.5, hw, hh, r);
+        const gl = Math.hypot(gx, gy) || 1, m = refr * s * s;
+        dx = -gx / gl * m; dy = -gy / gl * m;
+      }
+      dx -= x * zk; dy -= y * zk;
+    }
+    const k = j * w + i; vx[k] = dx; vy[k] = dy;
+    max = Math.max(max, Math.abs(dx), Math.abs(dy));
+  }
+  for (let k = 0; k < w * h; k++) {
+    D[k * 4] = 128 + Math.round(vx[k] / max * 127);
+    D[k * 4 + 1] = 128 + Math.round(vy[k] / max * 127);
+    D[k * 4 + 2] = 128; D[k * 4 + 3] = 255;
+  }
+  c.putImageData(img, 0, 0);
+  return { url: cv.toDataURL(), scale: max * 255 / 127 };
+}
+function makeFilter(id) {
+  const f = document.createElementNS(SVGNS, 'filter');
+  for (const [a, v] of [['id', id], ['x', '0'], ['y', '0'], ['width', '100%'], ['height', '100%'], ['color-interpolation-filters', 'sRGB']]) f.setAttribute(a, v);
+  const ch = (m, n) => `<feDisplacementMap in="SourceGraphic" in2="map" xChannelSelector="R" yChannelSelector="G" result="d${n}"/><feColorMatrix in="d${n}" type="matrix" values="${m} 0 0 0 1 0" result="${n}"/>`;
+  f.innerHTML = '<feImage result="map" x="0" y="0" preserveAspectRatio="none"/>'
+    + ch('1 0 0 0 0 0 0 0 0 0 0 0 0 0 0', 'r') + ch('0 0 0 0 0 0 1 0 0 0 0 0 0 0 0', 'g') + ch('0 0 0 0 0 0 0 0 0 0 0 0 1 0 0', 'b')
+    + '<feBlend in="r" in2="g" mode="screen" result="rg"/><feBlend in="rg" in2="b" mode="screen"/>';
+  $('#lg-defs defs').appendChild(f);
+  return f;
+}
+function applyGlass(el) {
+  const g = glassEls.get(el);
+  const w = Math.round(el.offsetWidth), h = Math.round(el.offsetHeight);
+  if (!g || !w || !h) return;
+  const r = Math.min(parseFloat(getComputedStyle(el).borderTopLeftRadius) || 0, w / 2, h / 2);
+  const o = g.opts();
+  const key = [w, h, r, o.refr, o.bevel, o.zoom, o.disp].join();
+  if (key === g.key) return;
+  g.key = key;
+  const { url, scale } = buildMap(w, h, r, o.bevel, o.refr, o.zoom);
+  const fe = g.f.querySelector('feImage');
+  fe.setAttribute('href', url); fe.setAttribute('width', w); fe.setAttribute('height', h);
+  const sp = o.disp * 0.1, dm = g.f.querySelectorAll('feDisplacementMap');
+  dm[0].setAttribute('scale', (scale * (1 + sp)).toFixed(2));
+  dm[1].setAttribute('scale', scale.toFixed(2));
+  dm[2].setAttribute('scale', (scale * (1 - sp)).toFixed(2));
+  el.style.setProperty('--lg-filter', `url(#${g.id})`);
+  el.classList.add('has-map');
+}
+function scheduleGlass(el) {
+  glassQueue.add(el);
+  if (!glassRaf) glassRaf = requestAnimationFrame(flushGlass);
+}
+function flushGlass() {
+  glassRaf = 0;
+  const t0 = performance.now();
+  for (const el of glassQueue) {
+    glassQueue.delete(el); applyGlass(el);
+    if (performance.now() - t0 > 10) break;
+  }
+  if (glassQueue.size) glassRaf = requestAnimationFrame(flushGlass);
+}
+const glassRO = new ResizeObserver(es => es.forEach(e => scheduleGlass(e.target)));
+function registerGlass(el, opts) {
+  if (!SVG_OK || glassEls.has(el)) return;
+  const id = 'lgf' + (++filterSeq);
+  const d = el.dataset;
+  glassEls.set(el, { id, f: makeFilter(id), key: '', opts: opts || (() => ({ refr: +d.refr || 14, bevel: +d.bevel || 18, zoom: +d.zoom || 1, disp: d.disp ? +d.disp : 0.25 })) });
+  glassRO.observe(el);
+  scheduleGlass(el);
+}
+function initSvgGlass() {
+  if (SVG_OK) document.documentElement.classList.add('svg-glass');
+  else {
+    $('#svg-note').hidden = false;
+    for (const id of ['#d-on', '#a-refr']) { const i = $(id); i.checked = false; i.disabled = true; }
+  }
+  const domStage = $('#dom-stage');
+  $$('[data-glass]').forEach(el => {
+    if (domStage.contains(el)) {
+      registerGlass(el, () => ({
+        refr: (+el.dataset.refr || 14) * domOpts.refr / 18,
+        bevel: (+el.dataset.bevel || 18) * domOpts.bevel / 22,
+        zoom: el.dataset.zoom ? domOpts.zoom : 1,
+        disp: +el.dataset.disp || 0.25,
+      }));
+    } else registerGlass(el);
+  });
+  // vidro do painel de navegação e do painel de ajustes também refrata (sem atributos no HTML)
+  registerGlass($('.topnav'), () => ({ refr: 10, bevel: 14, zoom: 1, disp: 0.2 }));
+  registerGlass($('.hint'), () => ({ refr: 8, bevel: 12, zoom: 1, disp: 0.2 }));
+}
+
+/* ================= Toque: brilho no ponto de contato ================= */
+function pressable(el, minMs = 0) {
+  let t0 = 0, timer = 0;
+  el.addEventListener('pointerdown', e => {
+    const r = el.getBoundingClientRect();
+    el.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+    el.style.setProperty('--my', (e.clientY - r.top) + 'px');
+    clearTimeout(timer); t0 = performance.now(); el.classList.add('pressed');
+  });
+  const up = () => {
+    if (!el.classList.contains('pressed')) return;
+    timer = setTimeout(() => el.classList.remove('pressed'), Math.max(0, minMs - (performance.now() - t0)));
+  };
+  el.addEventListener('pointerup', up); el.addEventListener('pointerleave', up); el.addEventListener('pointercancel', up);
+}
+
+/* ================= Indicador elástico (abas e segmentos) ================= */
+function elastic(root, { fill, lens, items, lensPad = 8 }) {
+  const x = new Spring(0, 230, 21), press = new Spring(0.85, 300, 20);
+  let sel = Math.max(0, items.findIndex(b => b.getAttribute('aria-selected') === 'true'));
+  let geo = [], dragging = false, ready = false, iw = 0;
+  const measure = () => {
+    geo = items.map(b => b.offsetLeft + b.offsetWidth / 2);
+    iw = items[0].offsetWidth;
+    fill.style.width = iw + 'px'; lens.style.width = iw + lensPad + 'px';
+    if (!ready && iw) { x.set(geo[sel]); ready = true; } else if (!dragging) x.t = geo[sel];
+  };
+  const select = (i, focus) => {
+    sel = clamp(i, 0, items.length - 1); x.t = geo[sel];
+    items.forEach((b, j) => { b.setAttribute('aria-selected', String(j === sel)); b.tabIndex = j === sel ? 0 : -1; });
+    if (focus) items[sel].focus();
+  };
+  const localX = e => e.clientX - root.getBoundingClientRect().left;
+  const nearest = px => geo.reduce((best, c, i) => Math.abs(c - px) < Math.abs(geo[best] - px) ? i : best, 0);
+  root.addEventListener('pointerdown', e => {
+    root.setPointerCapture(e.pointerId); dragging = true; root.classList.add('dragging'); press.t = 1;
+    x.t = clamp(localX(e), geo[0], geo[geo.length - 1]);
+  });
+  root.addEventListener('pointermove', e => { if (dragging) x.t = clamp(localX(e), geo[0], geo[geo.length - 1]); });
+  const end = e => {
+    if (!dragging) return;
+    dragging = false; root.classList.remove('dragging'); press.t = 0.85;
+    select(nearest(e.type === 'pointercancel' ? x.x : localX(e)));
+  };
+  root.addEventListener('pointerup', end); root.addEventListener('pointercancel', end);
+  root.addEventListener('keydown', e => {
+    const d = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
+    if (d) { e.preventDefault(); select(sel + d, true); }
+    if (e.key === 'Home') { e.preventDefault(); select(0, true); }
+    if (e.key === 'End') { e.preventDefault(); select(items.length - 1, true); }
+  });
+  items.forEach((b, i) => b.addEventListener('click', () => { if (!dragging) select(i); }));
+  new ResizeObserver(measure).observe(root);
+  select(sel);
+  addTick(root, dt => {
+    if (!ready) return;
+    stepSprings([x, press], dt);
+    const v = Math.abs(x.v);
+    const sx = 1 + Math.min(v / 1700, 0.32), sy = 1 - Math.min(v / 3400, 0.12);
+    fill.style.transform = `translateX(${x.x - iw / 2}px) scale(${sx},${sy})`;
+    const lw = iw + lensPad, ls = 1.06 * press.x;
+    lens.style.transform = `translateX(${x.x - lw / 2}px) scale(${sx * ls},${sy * ls})`;
+  });
+}
+
+/* ================= Componentes ================= */
+function initComponents() {
+  $$('.press').forEach(el => pressable(el));
+  $$('.switch').forEach(sw => {
+    pressable(sw, 420);
+    sw.addEventListener('click', () => sw.setAttribute('aria-checked', String(sw.getAttribute('aria-checked') !== 'true')));
+  });
+  $$('.gslider').forEach(sl => {
+    const fill = $('.gs-fill', sl), thumb = $('.gs-thumb', sl);
+    let val = +sl.getAttribute('aria-valuenow');
+    const render = () => {
+      const pos = `calc(20px + (100% - 40px) * ${val / 100})`;
+      fill.style.width = pos; thumb.style.left = pos;
+      sl.setAttribute('aria-valuenow', Math.round(val)); sl.setAttribute('aria-valuetext', Math.round(val) + '%');
+    };
+    const from = e => { const r = sl.getBoundingClientRect(); val = clamp((e.clientX - r.left - 20) / (r.width - 40) * 100, 0, 100); render(); };
+    sl.addEventListener('pointerdown', e => { sl.setPointerCapture(e.pointerId); sl.classList.add('pressed'); from(e); });
+    sl.addEventListener('pointermove', e => { if (sl.hasPointerCapture(e.pointerId)) from(e); });
+    const up = () => sl.classList.remove('pressed');
+    sl.addEventListener('pointerup', up); sl.addEventListener('pointercancel', up);
+    sl.addEventListener('keydown', e => {
+      const d = { ArrowLeft: -5, ArrowDown: -5, ArrowRight: 5, ArrowUp: 5, PageDown: -20, PageUp: 20 }[e.key];
+      if (d !== undefined) val = clamp(val + d, 0, 100);
+      else if (e.key === 'Home') val = 0; else if (e.key === 'End') val = 100; else return;
+      e.preventDefault(); render();
+    });
+    render();
+  });
+  const tb = $('#tabbar');
+  elastic(tb, { fill: $('.tab-fill', tb), lens: $('.tab-lens', tb), items: $$('.tab', tb), lensPad: 10 });
+  const seg = $('#seg');
+  elastic(seg, { fill: $('.seg-fill', seg), lens: $('.seg-lens', seg), items: $$('button', seg), lensPad: 10 });
+}
+
+/* ================= Lupa sobre o artigo ================= */
+function initDomStage() {
+  const stage = $('#dom-stage'), lens = $('#dom-lens');
+  const lx = new Spring(0, 200, 22), ly = new Spring(0, 200, 22);
+  let drag = null, touched = false, placed = false;
+  const S = 150;
+  const bounds = () => [stage.clientWidth - S, stage.clientHeight - S];
+  const local = e => { const r = stage.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  lens.addEventListener('pointerdown', e => {
+    lens.setPointerCapture(e.pointerId); touched = true;
+    const [px, py] = local(e); drag = { ox: px - lx.x, oy: py - ly.x, id: e.pointerId };
+  });
+  lens.addEventListener('pointermove', e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const [px, py] = local(e), [bw, bh] = bounds();
+    lx.t = clamp(px - drag.ox, 0, bw); ly.t = clamp(py - drag.oy, 0, bh);
+  });
+  const end = () => { drag = null; };
+  lens.addEventListener('pointerup', end); lens.addEventListener('pointercancel', end);
+  lens.addEventListener('keydown', e => {
+    const st = e.shiftKey ? 48 : 16;
+    const d = { ArrowLeft: [-st, 0], ArrowRight: [st, 0], ArrowUp: [0, -st], ArrowDown: [0, st] }[e.key];
+    if (!d) return;
+    e.preventDefault(); touched = true;
+    const [bw, bh] = bounds();
+    lx.t = clamp(lx.t + d[0], 0, bw); ly.t = clamp(ly.t + d[1], 0, bh);
+  });
+  addTick(stage, (dt, t) => {
+    const [bw, bh] = bounds();
+    if (!placed && bw > 0) { lx.set(bw * 0.42); ly.set(Math.min(96, bh)); placed = true; }
+    if (!touched && !reduceMotion.matches) { lx.t = bw * (0.42 + 0.3 * Math.sin(t * 0.35)); ly.t = Math.min(96 + 26 * Math.sin(t * 0.6), bh); }
+    stepSprings([lx, ly], dt);
+    lens.style.transform = `translate(${lx.x}px,${ly.x}px)`;
+  });
+  const sliders = [['d-refr', 'refr', v => `${v} px`, 1], ['d-bevel', 'bevel', v => `${v} px`, 1], ['d-zoom', 'zoom', v => `${fmt(v, 2)}×`, 100]];
+  for (const [id, key, show, div] of sliders) {
+    const inp = $('#' + id), out = inp.parentElement.querySelector('output');
+    inp.addEventListener('input', () => {
+      domOpts[key] = +inp.value / div; out.textContent = show(domOpts[key]);
+      $$('[data-glass]', stage).forEach(scheduleGlass);
+    });
+  }
+  $('#d-on').addEventListener('change', e => stage.classList.toggle('no-refr', !e.target.checked));
+}
+
+/* ================= Anatomia ================= */
+function initAnatomy() {
+  const card = $('#ana-card'), code = $('#ana-code'), copy = $('#copy-css');
+  const on = id => $('#' + id).checked;
+  const update = () => {
+    const blur = on('a-blur'), refr = on('a-refr') && SVG_OK, sat = on('a-sat'), tint = on('a-tint'), rim = on('a-rim'), shadow = on('a-shadow');
+    card.style.setProperty('--a-blur', blur ? '3px' : '0px');
+    card.style.setProperty('--a-sat', sat ? '1.8' : '1');
+    card.style.setProperty('--a-tint', tint ? 'rgba(255,255,255,.12)' : 'transparent');
+    card.style.setProperty('--a-rim', rim ? '1' : '0');
+    card.classList.toggle('no-rim', !rim);
+    card.classList.toggle('no-shadow', !shadow);
+    card.classList.toggle('no-refr', !refr);
+    const k = s => `<span class="k">${s}</span>`, v = s => `<span class="v">${s}</span>`, c = s => `<span class="c">/* ${s} */</span>`;
+    const fx = [refr && 'url(#vidro)', blur && 'blur(3px)', sat && 'saturate(1.8)'].filter(Boolean);
+    const shadows = [];
+    if (rim) shadows.push(`    ${v('inset 0 0 0 1px rgba(255,255,255,.14)')}`, `    ${v('inset 1.6px 1.6px 1px -1px rgba(255,255,255,.75)')}`, `    ${v('inset -1.6px -1.6px 1px -1px rgba(255,255,255,.4)')}`);
+    if (shadow) shadows.push(`    ${v('0 12px 32px -10px rgba(12,16,32,.22)')}`);
+    const lines = ['.vidro {', `  ${k('border-radius')}: ${v('44px')};`];
+    if (tint) lines.push(`  ${k('background')}: ${v('rgba(255,255,255,.12)')}; ${c('tom')}`);
+    if (fx.length) lines.push(`  ${k('backdrop-filter')}: ${v(fx.join(' '))};`);
+    if (shadows.length) lines.push(`  ${k('box-shadow')}:`, shadows.join(',\n') + ';');
+    if (rim) lines.push(`  ${c('+ ::after com contorno em gradiente (mask-composite)')}`);
+    lines.push('}');
+    if (refr) lines.push('', c('o filtro #vidro: feImage com o mapa + feDisplacementMap'));
+    code.innerHTML = lines.join('\n');
+  };
+  $$('#layers input').forEach(i => i.addEventListener('change', update));
+  update();
+  copy.addEventListener('click', () => {
+    const done = () => { copy.textContent = 'Copiado'; setTimeout(() => { copy.textContent = 'Copiar CSS'; }, 1600); };
+    const fallback = () => { const r = document.createRange(); r.selectNodeContents(code); const s = getSelection(); s.removeAllRanges(); s.addRange(r); copy.textContent = 'Selecionado: Ctrl+C'; };
+    try { navigator.clipboard.writeText(code.textContent).then(done, fallback); } catch (e) { fallback(); }
+  });
+}
+
+/* ================= Tema ================= */
+const ICON_SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+const ICON_MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11z"/></svg>';
+function initTheme() {
+  const btn = $('#theme-btn'), root = document.documentElement;
+  try { const s = localStorage.getItem('lg-theme'); if (s === 'dark' || s === 'light') root.dataset.theme = s; } catch (e) { /* sem armazenamento */ }
+  const paint = () => {
+    btn.innerHTML = isDark() ? ICON_SUN : ICON_MOON;
+    btn.setAttribute('aria-label', isDark() ? 'Usar tema claro' : 'Usar tema escuro');
+  };
+  const changed = () => { paint(); glStages.forEach(s => s.redraw()); };
+  btn.addEventListener('click', () => {
+    root.dataset.theme = isDark() ? 'light' : 'dark';
+    try { localStorage.setItem('lg-theme', root.dataset.theme); } catch (e) { /* sem armazenamento */ }
+    changed();
+  });
+  darkMQ.addEventListener('change', changed);
+  paint();
+}
+
+/* Easing de mola para o CSS, gerado pela mesma física das molas em JS */
+(function springEasing() {
+  if (!window.CSS || !CSS.supports('transition-timing-function', 'linear(0, 1)')) return;
+  let x = 0, v = 0;
+  const pts = [];
+  for (let i = 0; i <= 60; i++) {
+    pts.push(+x.toFixed(4));
+    for (let j = 0; j < 8; j++) { const a = 190 * (1 - x) - 15 * v; v += a / 480; x += v / 480; }
+  }
+  document.documentElement.style.setProperty('--spring', `linear(${pts.join(',')})`);
+  document.documentElement.style.setProperty('--spring-dur', '1s');
+})();
+
+/* ================= Início ================= */
+(function boot() {
+  initTheme();
+  try { initHero(); } catch (e) { console.warn('WebGL do herói falhou:', e); document.documentElement.classList.add('no-webgl'); }
+  try { initMorph(); } catch (e) { console.warn('WebGL da fusão falhou:', e); }
+  initSvgGlass();
+  initComponents();
+  initDomStage();
+  initAnatomy();
+  const faces = ['800 100px "Bricolage Grotesque"', '500 16px "Geist"', '600 13px "Geist"', '500 11px "Geist Mono"'];
+  if (document.fonts && document.fonts.load) Promise.all(faces.map(f => document.fonts.load(f).catch(() => null))).then(() => glStages.forEach(s => s.redraw()));
+})();
+
+document.documentElement.lang = 'pt-BR';
+</script>
+</body>
+</html>
